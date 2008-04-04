@@ -19,10 +19,10 @@ import tango.text.convert.Layout;
 import tango.util.log.Log;
 import tango.util.log.model.ILevel;
 
-import tangled.defer;
 import tangled.failure;
 import tangled.heap;
 import tangled.interfaces;
+import tangled.defer;
 import tangled.time;
 import tangled.fiber;
 
@@ -84,8 +84,8 @@ class Reactor : IReactorTCP, IReactorCore
     if (bind is null)
       bind = new InternetAddress("127.0.0.1", 0);
     auto socket = new SocketConduit();
-    socket.getSocket.blocking(false);
-    assert(socket.getSocket.blocking() == false);
+    socket.socket.blocking(false);
+    assert(socket.socket.blocking() == false);
     socket.connect(dest);
     auto ss = new SingleSocket(socket, protocol, bind, dest);
     singlesockets.add(socket.fileHandle, ss);
@@ -107,8 +107,8 @@ class Reactor : IReactorTCP, IReactorCore
     wakeSelect();
     return c;
   }
-
-  Deferred!(char[]) resolve(char[] name, int timeout){
+  
+  TDeferred!(char[]).AbstractDeferred resolve(char[] name, int timeout){
     assert(0);
   }
 
@@ -136,8 +136,8 @@ class Reactor : IReactorTCP, IReactorCore
       try {
 	c.call();
       }
-      catch(TracedException e){
-	log.warn(format("Exception in call:\n{0}\n", e.toUtf8()));
+      catch(Exception e){
+	log.warn(format("Exception in call:\n{0}\n", e.toString()));
       }
       catch {
 	log.warn(format("Catch All Exception in call {0}\n", c.stringof));      
@@ -217,11 +217,11 @@ class Reactor : IReactorTCP, IReactorCore
 	    log.trace("accepting");
 	    // server socket, need to accept
 	    auto c = (cast(ServerSocket)key.conduit).accept();
-	    c.getSocket.blocking(false);
+	    c.socket.blocking(false);
 	    auto handler = this.listening_handlers.get(key.conduit.fileHandle);
-	    auto remote = cast(InternetAddress)c.getSocket().remoteAddress();
+	    auto remote = cast(InternetAddress)c.socket().remoteAddress();
 	    auto protocol = handler.buildProtocol(remote);
-	    auto local = cast(InternetAddress)c.getSocket().localAddress();
+	    auto local = cast(InternetAddress)c.socket().localAddress();
 	    auto nss = new SingleSocket(c, protocol, local, remote);
 	    this.singlesockets.add(c.fileHandle(), nss);
 	    this.registerRead(c);
@@ -390,7 +390,7 @@ class SingleSocket : ITransport {
 	auto buf = this.buffer.head();
 	log.trace("writing");
 	
-	amount = this.sock.getSocket.send(buf);
+	amount = this.sock.socket.send(buf);
 	if (amount != buf.length) {
 	  if (amount > 0) {
 	    this.buffer.replaceHead(buf[amount..buf.length]);

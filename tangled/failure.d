@@ -2,14 +2,14 @@ module tangled.failure;
 
 import tango.core.Exception;
 
-class Failure : TracedException
+class Failure : Exception
 {
     this( char[] msg )
     {
         super( msg );
     }
 
-    this( char[] msg, Exception e )
+    /*    this( char[] msg, Exception e )
     {
         super( msg, e );
     }
@@ -18,5 +18,5 @@ class Failure : TracedException
     {
         super( msg, file, line );
     }
-  
+    */
 }
