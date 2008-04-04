@@ -1,0 +1,15 @@
+Index: lib/common/tango/core/Thread.d
+===================================================================
+--- lib/common/tango/core/Thread.d	(revision 1938)
++++ lib/common/tango/core/Thread.d	(working copy)
+@@ -2338,6 +2338,10 @@
+         m_unhandled = null;
+     }
+ 
++    static Fiber getCurrent()
++    {
++      return getThis();
++    }
+ 
+     ////////////////////////////////////////////////////////////////////////////
+     // General Properties
