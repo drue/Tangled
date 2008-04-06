@@ -5,6 +5,8 @@ import tangled.protocol;
 import txt = tango.text.Util;
 import tango.text.convert.Layout;
 
+import tango.io.Stdout;
+
 
 static Layout!(char) format;
 
@@ -24,46 +26,31 @@ class LineReceiver : BaseProtocol {
 
   void dataReceived(char[] data) {
     __buffer = __buffer ~ data;
-    if (line_mode) {
-      uint keep_last = 1;
-      if (__buffer[length-delimiter.length..length] == delimiter)
-	keep_last = 0;
-
-      auto lines = txt.split(__buffer, delimiter);
-      if (keep_last)
-	__buffer = lines[length-1];
-      else
-	__buffer = "";
-      if (lines.length == 1 && lines[0].length > MAX_LENGTH)
-	return lineLengthExceeded(lines[0]);
-      int i;
-      for(i=0;i < (lines.length - keep_last) && line_mode; i++) {
-	auto line = lines[i];
-	if (line.length > MAX_LENGTH)
-	  lineLengthExceeded(line);
-	lineReceived(line);
-	if (!line_mode) {
-	  break;
+    while(line_mode) {
+      auto line = txt.head(__buffer, "\r\n", __buffer);
+      if(!__buffer) {
+	__buffer = line;
+	if(__buffer.length > MAX_LENGTH) {
+	  line = __buffer;
+	  __buffer = "";
+	  return lineLengthExceeded(line);
 	}
+	break;
       }
-      if (!line_mode) {
-	__buffer = "";
-	i += 1;
-	for(i=i;i < lines.length;i++) {
-	  if(i < lines.length - 1 || !keep_last)
-	    __buffer ~= lines[i] ~ delimiter;
-	  else
-	    __buffer ~= lines[i];
+      else {
+	if(line.length > MAX_LENGTH) {
+	  auto exceeded = line ~ __buffer;
+	  __buffer =  "";
+	  return lineLengthExceeded(exceeded);
 	}
-	rawDataReceived(__buffer);
-	__buffer = "";
+	lineReceived(line);
       }
     }
-    else {
-      data = __buffer;
+    if(!line_mode) { 
+      auto x = __buffer;
       __buffer = "";
-      if (data.length)
-	rawDataReceived(data);
+      if (x.length)
+	rawDataReceived(x);
     }
   }
   
@@ -93,7 +80,6 @@ class LineReceiver : BaseProtocol {
 
 
   unittest {
-
     class myreceiver : LineReceiver {
       char [][] gotlines;
       char[] data;
@@ -107,10 +93,37 @@ class LineReceiver : BaseProtocol {
 	this.data ~= data;
       }
     }
+    
+    // first check behavior of txt processing funcs
+    auto foo = "this\r\nis\r\na\r\ntest\r\n";
+    assert(txt.split(foo, "\r\n").length == 5);
+    assert(txt.split(foo, "\r\n")[length-1] == "");
+    auto boo = "this\r\nis\r\na\r\ntest\r\n\r\n";
+    assert(txt.split(boo, "\r\n").length == 6);
+    assert(txt.split(boo, "\r\n")[length-1] == "");
+    assert(txt.split(boo, "\r\n")[length-2] == "");
+    assert(txt.split(boo, "\r\n")[length-3] == "test");
+    auto moo = txt.split("\r\n", "\r\n");
+    assert(moo.length == 2);
+    assert(moo[0] == "");
+    assert(moo[1] == "");
+
+    char[] a, b;
+    char[] w = "\r\n";
+    a = txt.head(w, "\r\n", b);
+    assert(a == "");
+    assert(b == "");
+    
+    w = w~w;
+    a = txt.head(w, "\r\n", b);
+    assert(a == "");
+    assert(b == "\r\n");
+    
 
     auto x = new myreceiver();
-    auto foo = "this\r\nis\r\na\r\ntest\r\n";
+    assert(x.line_mode);
     x.dataReceived(foo);
+    assert(x.line_mode);
     assert(x.gotlines.length == 4);
     assert(x.gotlines[0]=="this");
     assert(x.gotlines[1]=="is");
@@ -127,11 +140,20 @@ class LineReceiver : BaseProtocol {
     assert(x.gotlines[1] == "againyes");
     assert(x.__buffer.length == 0);
 
+    assert(x.line_mode);
+    x.dataReceived("\r\n");
+    assert(!x.line_mode);
+
     x = new myreceiver();
     auto bar = "HTTP/1.0 OK\r\nKey: Value\r\n\r\nStuff\r\n";
+    assert(txt.split(bar, "\r\n").length == 5);
     x.dataReceived(bar);
     assert(x.line_mode == false);
     assert(x.gotlines.length == 2);
+
+    //Stdout.format(">> length {} {}\n", x.data.length, x.data).flush;
+    
+    assert(x.data[0..5] == "Stuff");
     assert(x.data.length == 7);
 
     auto z = "HTTP/1.0 200 OK\r\n"
