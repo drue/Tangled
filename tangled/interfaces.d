@@ -2,14 +2,11 @@ module tangled.interfaces;
 
 import tango.net.InternetAddress;
 import tango.io.selector.model.ISelector;
-import tangled.defer;
 import tangled.failure;
 import tangled.time;
 
 enum SystemEvent { startup, shutdown, persist };
 enum Phase {before, during, after };
-
-alias Deferred!(bool) StopListeningRes;
 
 interface IConnector {
   void stopConnecting();
@@ -24,9 +21,15 @@ interface IReactorTCP {
   void connectTCP(InternetAddress dest, IProtocol protocol, int timeout, InternetAddress bind);
 }
 
+interface IDeferred (T) {
+  void addCallback(T delegate(T) f);
+  void callBack(T res);
+  void callback(T res);
+  T yieldForResult();
+}
 
 interface IReactorCore {
-  Deferred!(char[]) resolve(char[] name, int timeout);
+  IDeferred!(char[]) resolve(char[] name, int timeout);
   void run();
   void crash();
   void iterate(double delay);
@@ -54,6 +57,7 @@ interface IProtocolFactory {
   void doStart();
   void doStop();
 }
+
 interface ITransport {
   void write(char[] data);
   void writeSequence(char[][] data);
@@ -62,4 +66,3 @@ interface ITransport {
   InternetAddress getPeer();
   InternetAddress getHost();
 }
-

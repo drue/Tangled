@@ -4,7 +4,9 @@ import tangled.reactor;
 import tango.util.collection.LinkSeq;
 import tango.core.Thread;
 
-public class Deferred(T)
+import tangled.interfaces;
+
+public class Deferred (T) : IDeferred!(T)
 {
   alias LinkSeq!(T delegate(T)) LinkSeqT;
   

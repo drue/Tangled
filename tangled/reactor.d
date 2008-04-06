@@ -108,7 +108,7 @@ class Reactor : IReactorTCP, IReactorCore
     return c;
   }
   
-  TDeferred!(char[]).AbstractDeferred resolve(char[] name, int timeout){
+  IDeferred!(char[]) resolve(char[] name, int timeout){
     assert(0);
   }
 
