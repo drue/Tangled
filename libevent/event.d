@@ -149,3 +149,18 @@ void * ev_arg;
 int ev_res;
 int ev_flags;
 }
+
+struct evkeyval {
+  struct {
+    evkeyval *tqe_next;
+    evkeyval **tqe_prev;
+  };
+  char *key;
+  char *value;
+};
+
+struct evkeyvalq {
+	evkeyval *tqh_first;
+	evkeyval **tqh_last;
+};
+
