@@ -1,5 +1,7 @@
 module tangled.interfaces;
 
+import libevent.http;
+
 import tango.net.InternetAddress;
 import tango.io.selector.model.ISelector;
 import tangled.failure;
@@ -19,6 +21,11 @@ interface IReactorTCP {
   ISelectable listenTCP(InternetAddress bind, IProtocolFactory factory, int backlog);
   void stopListeningTCP(ISelectable s);
   void connectTCP(InternetAddress dest, IProtocol protocol, int timeout, InternetAddress bind);
+}
+
+interface IReactorHTTP {
+  evhttp httpListen(InternetAddress bind);
+  void httpRegisterURI(evhttp_request *req, char[] URI, IProtocolFactory fac);
 }
 
 interface IDeferred (T) {
