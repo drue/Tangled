@@ -86,3 +86,9 @@ interface ITransport {
   InternetAddress getPeer();
   InternetAddress getHost();
 }
+
+interface IASelectable : ISelectable {
+  void readyToRead();
+  void readyToWrite();
+}
+

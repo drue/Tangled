@@ -4,11 +4,13 @@ import tango.net.SocketConduit;
 
 import tangled.defer;
 import tangled.failure;
+import tangled.interfaces;
+import tangled.reactor;
 
-class TangledSocketConduit : SocketConduit
+class ASocketConduit : SocketConduit, IASelectable
 {
-  Deferred!(int) readDF;
-  Deferred!(int) writeDF;
+  IDeferred!(int) readDF;
+  IDeferred!(int) writeDF;
 
   uint read(void[] dst) {
     if(readDF) {
@@ -16,7 +18,7 @@ class TangledSocketConduit : SocketConduit
     }
     else {
       readDF = new Deferred!(int);
-      // register for read event
+      reactor.registerRead(this);
       readDF.yieldForResult();
     }
     auto c = socket.receive(dst);
@@ -25,6 +27,13 @@ class TangledSocketConduit : SocketConduit
       return Eof;
     }
     return c;
+  }
+
+  void readyToRead() {
+    if (readDF) {
+      readDF.callBack(0);
+      readDF = null;
+    }
   }
 
   uint write(void[] src) {
@@ -42,5 +51,18 @@ class TangledSocketConduit : SocketConduit
       return Eof;
     }
     return c;
+  }
+
+  void readyToWrite() {
+    if (writeDF) {
+      readDF.callBack(0);
+      writeDF = null;
+    }
+  }
+
+  void timeout() {
+  }
+  
+  void signal() {
   }
 }
