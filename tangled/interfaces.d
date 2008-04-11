@@ -90,5 +90,7 @@ interface ITransport {
 interface IASelectable : ISelectable {
   void readyToRead();
   void readyToWrite();
+  void signal();
+  void timeout();
 }
 
