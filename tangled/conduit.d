@@ -1,6 +1,8 @@
 module tangled.conduit;
 
 import tango.net.SocketConduit;
+import tango.net.ServerSocket;
+import tango.net.Socket;
 
 import tangled.defer;
 import tangled.failure;
@@ -42,7 +44,7 @@ class ASocketConduit : SocketConduit, IASelectable
     }
     else {
       writeDF = new Deferred!(int);
-      // register for read event
+      reactor.registerWrite(this);
       writeDF.yieldForResult();
     }
     auto c = socket.send(src);
@@ -60,9 +62,33 @@ class ASocketConduit : SocketConduit, IASelectable
     }
   }
 
+  OutputStream flush() {
+    return this;
+  }
+
   void timeout() {
   }
   
   void signal() {
+  }
+
+  InternetAddress remoteAddr() {
+    auto a = cast(IPv4Address)socket.remoteAddress;
+    return new InternetAddress(a.toAddrString, a.port);
+  }
+
+}
+
+
+class AServerSocket : ServerSocket {
+  this(InternetAddress bind) {
+    super(bind);
+  }
+  protected ASocketConduit create (){
+    return new ASocketConduit();
+  }
+  
+  ASocketConduit accept() {
+    return cast(ASocketConduit)super.accept();
   }
 }

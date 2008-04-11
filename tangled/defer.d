@@ -4,7 +4,6 @@ import tango.core.Thread;
 import tango.util.collection.LinkSeq;
 
 import tangled.interfaces;
-import tangled.reactor;
 
 public class Deferred (T) : IDeferred!(T)
 {
@@ -48,7 +47,6 @@ public class Deferred (T) : IDeferred!(T)
     }
     foreach (waiter; this.waiters) {
       waiter.call();
-      reactor.fibers.ret(waiter);
     }
     waiters = null;
   }

@@ -28,7 +28,7 @@ interface IReactorHTTP {
 }
 
 interface IHTTPServer {
-  void httpRegisterURI(char[] URI, IProtocolFactory fac);
+  void registerURI(char[] URI, IHTTPProtocolFactory fac);
 }
 
 interface IDeferred (T) {
@@ -55,15 +55,15 @@ interface IDelayedCall {
 }
 
 interface IProtocol {
-  void makeConnection(ITransport transport);
-  void dataReceived(char[] data);
+  void makeConnection(IAConduit transport);
+  /*  void dataReceived(char[] data);
   void connectionLost(Failure reason);
   void connectionMade();
-  void connectionFlushed();
+  void connectionFlushed();*/
 }
 
 interface IProtocolFactory {
-  IProtocol buildProtocol(InternetAddress addr, IConduit socket);
+  IProtocol buildProtocol();
   void doStart();
   void doStop();
 }
@@ -73,7 +73,7 @@ interface IHTTPRequest {
 }
 
 interface IHTTPProtocolFactory {
-   IProtocol buildProtocol(IHTTPRequest req, IConduit socket);
+   IProtocol buildProtocol(IHTTPRequest req);
    void doStart();
    void doStop();
 }
@@ -92,5 +92,15 @@ interface IASelectable : ISelectable {
   void readyToWrite();
   void signal();
   void timeout();
+}
+
+interface IListener {
+  int fileHandle();
+  IAConduit accept();
+  IProtocolFactory factory();
+}
+
+interface IAConduit : IConduit {
+  InternetAddress remoteAddr();
 }
 

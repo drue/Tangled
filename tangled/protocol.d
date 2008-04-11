@@ -1,17 +1,20 @@
 module tangled.protocol;
 
+import tango.net.InternetAddress;
+import tango.io.model.IConduit;
+
 import tangled.interfaces;
 import tangled.failure;
 
-import tango.net.InternetAddress;
 
 class BaseProtocol : IProtocol {
-  ITransport transport;
+  IAConduit transport;
 
-  void makeConnection(ITransport transport) {
+  void makeConnection(IAConduit transport) {
     this.transport = transport;
   }
 
+  /*
   void dataReceived(char[] data) {
   }
   void connectionLost(Failure reason){
@@ -19,11 +22,11 @@ class BaseProtocol : IProtocol {
   void connectionMade(){
   }
   void connectionFlushed(){
-  }
+  }*/
 }
 
 class SimpleFactory(Protocol) : IProtocolFactory {
-  Protocol buildProtocol(InternetAddress addr, IConduit socket) {
+  Protocol buildProtocol() {
     return new Protocol();
   }
   void doStart() {

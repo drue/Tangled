@@ -3,13 +3,16 @@ module tangled.evhttp;
 import tango.net.InternetAddress;
 import tango.stdc.stringz;
 
+import tangled.conduit;
 import tangled.interfaces;
+import tangled.reactor;
+
 import libevent.http;
 
 
 extern (C) void accept_cb(evhttp_request *req, void *user){
-  IProtocolFactory fac =  *cast(IProtocolFactory *)user;
-  //fac.buildProtocol(new EVHRequest(req), new
+  IHTTPProtocolFactory fac =  *cast(IHTTPProtocolFactory *)user;
+  reactor.callInFiber(&fac.buildProtocol, new EVHRequest(*req));
 }
 
 class EVHServer : IHTTPServer {
@@ -23,7 +26,7 @@ class EVHServer : IHTTPServer {
     }
   }
 
-  void httpRegisterURI(char[] URI, IProtocolFactory fac) {
+  void registerURI(char[] URI, IHTTPProtocolFactory fac) {
     fac.doStart();
     evhttp_set_cb(ctx, URI.ptr, &accept_cb, &fac);
   }
