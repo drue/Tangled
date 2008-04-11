@@ -9,6 +9,7 @@ import libevent.event;
 import libevent.http;
 
 import tangled.defer;
+import tangled.evhttp;
 import tangled.failure;
 import tangled.fiber;
 import tangled.interfaces;
@@ -30,9 +31,6 @@ static this(){
   format = new Layout!(char)();
 }
 
-extern (C) void http_cb(evhttp_request *req, void *user){
-  reactor.handleHTTP(req, *cast(IProtocolFactory *)user);
-}
 
 class Reactor : IReactorCore
 {
@@ -64,22 +62,7 @@ class Reactor : IReactorCore
       assert(0);
     }
 
-    evhttp httpListen(InternetAddress bind) {
-      evhttp http = evhttp_new(evbase);
-      if (!evhttp_bind_socket(http, bind.toAddrString.ptr, bind.port)) {
-	// return value is undocumented!
-	assert(0);
-      }
-      return http;
-    }
-    
-    void httpRegisterURI(evhttp http, char[] URI, IProtocolFactory fac) {
-      evhttp_set_cb(http, URI.ptr, &http_cb, &fac);
-    }
-
-    void handleHTTP(evhttp_request *req, IProtocolFactory fac) {
-      // this should be in a fiber
-      auto protocol = fac.buildProtocol(new InternetAddress(fromStringz(req.remote_host), req.remote_port));
-      //protocol.makeConnection(t);
+    IHTTPServer httpListen(InternetAddress bind) {
+      return new EVHServer(evbase, bind);
     }
 }

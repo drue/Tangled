@@ -24,8 +24,11 @@ interface IReactorTCP {
 }
 
 interface IReactorHTTP {
-  evhttp httpListen(InternetAddress bind);
-  void httpRegisterURI(evhttp_request *req, char[] URI, IProtocolFactory fac);
+  IHTTPServer httpListen(InternetAddress bind);
+}
+
+interface IHTTPServer {
+  void httpRegisterURI(char[] URI, IProtocolFactory fac);
 }
 
 interface IDeferred (T) {
@@ -60,9 +63,19 @@ interface IProtocol {
 }
 
 interface IProtocolFactory {
-  IProtocol buildProtocol(InternetAddress addr);
+  IProtocol buildProtocol(InternetAddress addr, IConduit socket);
   void doStart();
   void doStop();
+}
+
+interface IHTTPRequest {
+  char[] remoteHost();
+}
+
+interface IHTTPProtocolFactory {
+   IProtocol buildProtocol(IHTTPRequest req, IConduit socket);
+   void doStart();
+   void doStop();
 }
 
 interface ITransport {
