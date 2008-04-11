@@ -1,10 +1,10 @@
 module tangled.defer;
 
-import tangled.reactor;
-import tango.util.collection.LinkSeq;
 import tango.core.Thread;
+import tango.util.collection.LinkSeq;
 
 import tangled.interfaces;
+import tangled.reactor;
 
 public class Deferred (T) : IDeferred!(T)
 {
@@ -89,4 +89,79 @@ public class Deferred (T) : IDeferred!(T)
 
       auto t = Fiber.getThis();
     }
+}
+
+template DelayedTypeGroup(Delegate, Args...) {
+  alias ReturnTypeOf!(Delegate)          RealReturn;
+  alias ParameterTupleOf!(Delegate)  Params;
+  // this compile time code makes this work for both functions and delegates
+  static if (is(Delegate == delegate))
+    alias RealReturn delegate(Params) Callable;
+  else
+    alias RealReturn function(Params) Callable;
+  // handle void return values
+  static if(RealReturn.stringof != void.stringof)
+    alias RealReturn Return;
+  else
+    alias _void Return ;
+  alias DelayedCall!(Return, Callable, Params) TDelayedCall;
+}
+
+
+typedef int _void;
+
+class DelayedCall(Return, Callable, U...) : IDelayedCall {
+  double t;
+  Callable f;
+  U args;
+  bool _active;
+  bool called;
+  Deferred!(Return) df;
+
+  this( double t, Callable f, U args){
+    this.t = t;
+    this.f = f;
+    foreach(i,a; args) {
+      this.args[i] = a;
+    }
+    _active = true;
+    df = new Deferred!(Return)();
+  }
+
+  void call() {
+    called = true;
+    static if(Return.stringof != _void.stringof) {
+      Return x = this.f(this.args);
+    }
+    else {
+      this.f(this.args);
+      _void x;
+    }
+    df.callback(x);
+  }
+
+  Return yieldForResult() {
+    return df.yieldForResult();
+  }
+
+  int opCmp(IDelayedCall o) {
+    if (time > o.time)
+      return 1;
+    else if (time < o.time)
+      return -1;
+    return 0;
+  }
+
+  double time(){
+    return this.t;
+  }
+
+  void cancel() {
+    this._active = false;
+  }
+
+  bool active(){
+    return this._active;
+  }
+
 }
