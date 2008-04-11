@@ -7,10 +7,11 @@ import tango.net.InternetAddress;
 
 class BaseProtocol : IProtocol {
   ITransport transport;
-  
+
   void makeConnection(ITransport transport) {
     this.transport = transport;
   }
+
   void dataReceived(char[] data) {
   }
   void connectionLost(Failure reason){
@@ -22,7 +23,7 @@ class BaseProtocol : IProtocol {
 }
 
 class SimpleFactory(Protocol) : IProtocolFactory {
-  Protocol buildProtocol(InternetAddress addr) {
+  Protocol buildProtocol(InternetAddress addr, IConduit socket) {
     return new Protocol();
   }
   void doStart() {
