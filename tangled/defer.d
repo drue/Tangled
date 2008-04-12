@@ -9,12 +9,11 @@ import tangled.interfaces;
 public class Deferred (T...) : IDeferred!(T)
 {
   alias LinkSeq!(Return delegate(T)) LinkSeqT;
-  
   bool called = false;
   private LinkSeqT callbacks;
+  private LinkSeq!(Fiber) waiters;
   static if(T.length != 0)
     private T[0] result;
-  private LinkSeq!(Fiber) waiters;
 
   this(){
     callbacks = new LinkSeqT();
@@ -45,7 +44,7 @@ public class Deferred (T...) : IDeferred!(T)
   public void callback(T res) {
     callBack(res);
   }
-
+  
   private void runCallbacks(T res) {
     static if(T.length != 0)
       T[0] tmp = res[0];
