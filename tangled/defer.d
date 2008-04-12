@@ -127,27 +127,6 @@ template DelayedTypeGroup(Delegate, Args...) {
   alias DelayedCall!(Return, Callable, Params) TDelayedCall;
 }
 
-template DelayedTypeGroup(Delegate) {
-  template ReturnTypeOf(Fn) {
-    static if( is( Fn Ret == return ) )
-      alias Ret ReturnTypeOf;
-    else
-      alias void ReturnTypeOf;
-  }
-  alias ReturnTypeOf!(Delegate)          RealReturn;
-  // this compile time code makes this work for both functions and delegates
-  static if (is(Delegate == delegate))
-    alias RealReturn delegate() Callable;
-  else
-    alias RealReturn function() Callable;
-  // handle void return values
-  static if(RealReturn.stringof != void.stringof)
-    alias RealReturn Return;
-  else
-    alias _void Return ;
-  alias DelayedCall!(Return, Callable) TDelayedCall;
-}
-
 typedef int _void;
 
 class DelayedCall(Return, Callable, U...) : IDelayedCall {
