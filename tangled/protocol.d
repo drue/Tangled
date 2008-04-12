@@ -5,12 +5,12 @@ import tango.io.model.IConduit;
 
 import tangled.interfaces;
 import tangled.failure;
-
+import tangled.conduit;
 
 class BaseProtocol : IProtocol {
-  IAConduit transport;
+  ASocketConduit transport;
 
-  void makeConnection(IAConduit transport) {
+  void makeConnection(ASocketConduit transport) {
     this.transport = transport;
   }
 

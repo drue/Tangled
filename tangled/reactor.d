@@ -31,12 +31,14 @@ version(build) {
 }
 
 Reactor reactor;
-Logger log;
+Logger log, evlog;
 static Layout!(char) format;
 
 static this(){
   log = Log.getLogger("tangled.reactor");
   log.addAppender(new ConsoleAppender(new DateLayout()));
+  evlog = Log.getLogger("tangled.reactor.libevent");
+  evlog.addAppender(new ConsoleAppender(new DateLayout()));
   format = new Layout!(char)();
   log.info("Creating reactor.");
   reactor = new Reactor();
@@ -71,7 +73,7 @@ extern (C) {
   }
 
   void log_cb(int severity, char *msg) {
-    log.append(cast(ILevel.Level)severity, fromStringz(msg));
+    evlog.append(cast(ILevel.Level)severity, fromStringz(msg));
   }
 
 }
@@ -139,33 +141,12 @@ class Reactor : IReactorCore
       }
       
       log.trace(">>> accepted");
-      /*      assert(s.factory);
-      auto p = s.factory.buildProtocol();
-      log.trace(">>> built");
-      assert(c, "bad conduit before callInFiber");
-      reactor.callInFiber(&p.makeConnection, c);
-      log.trace(">>> connection made");*/
     }
 
     void callInFiber(Callable, Args...)(Callable f, Args args) {
-      log.trace(">>> callInFiber");
+      log.trace(format(">>> callInFiber with args {} {}", f, args));
       try {
 	auto fiber = new Fiber(delegate void() {f(args);});
-	fiber.call();
-      }
-      catch (FiberException e) {
-	log.error(format("Fiber Exception {}", e));
-      }
-      catch (Exception e) {
-	log.error(format("Unhandled exception in fiber: {}", e));
-      }
-      log.trace(">>> callInFiber done");
-    }
-
-    void callInFiber(Callable)(Callable f) {
-      log.trace(">>> callInFiber");
-      try {
-	auto fiber = new Fiber(delegate void() {f();});
 	fiber.call();
       }
       catch (FiberException e) {
@@ -185,6 +166,7 @@ class Reactor : IReactorCore
       timeval *tv = new timeval;
       tv.tv_sec = cast(int)floor(delay);
       tv.tv_usec = cast(int)(delay - floor(delay)) * 1000000;
+      GC.addRoot(ev);GC.addRoot(tv);
 
       event_set(ev, -1, 0, &event_cb, cast(void *)c);
       event_add(ev, tv);
@@ -197,6 +179,8 @@ class Reactor : IReactorCore
       auto c = new DelayedTypeGroup!(Delegate).TDelayedCall(t, cmd);
       event *ev = new event;
       timeval *tv = new timeval;
+      GC.addRoot(ev);GC.addRoot(tv);
+
       tv.tv_sec = cast(int)floor(delay);
       tv.tv_usec = cast(int)(delay - floor(delay)) * 1000000;
 
@@ -213,6 +197,8 @@ class Reactor : IReactorCore
 	//GC.addRoot(&f);
 	event_set(ev, s.fileHandle, EV_READ|EV_PERSIST, &listen_cb, cast(void *)s);
 	event_base_set(evbase, ev);
+	GC.addRoot(ev);
+     
 	if(int i = event_add(ev, null) != 0)
 	  log.error(format(">> startListening failed to add event code {}", i));
 	else
@@ -225,6 +211,7 @@ class Reactor : IReactorCore
 	event_once(s.fileHandle, EV_READ, &socket_cb, cast(void*)s, null);
       else {
 	event *ev = new event;
+	GC.addRoot(ev);
 	event_set(ev, s.fileHandle, EV_READ, &socket_cb, cast(void *)s);
 	event_add(ev, null);
       }
@@ -278,12 +265,12 @@ class TCPListener : IListener {
     return f;
   }
   
-  IAConduit accept() {
-    auto a = s.accept();
+  ASocketConduit accept() {
+    auto a = cast(ASocketConduit)s.accept();
     assert(a);
-    log.trace(format(">>> accept: {}", typeof(a).stringof));
+    log.trace(format(">>> accept: {}", a));
     auto p = f.buildProtocol();
-    reactor.callInFiber(&p.makeConnection, cast(IAConduit)a);
-    return cast(IAConduit)a;
+    reactor.callInFiber(&p.makeConnection, a);
+    return a;
   }
 }

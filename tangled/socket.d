@@ -12,13 +12,11 @@ class AServerSocket : ServerSocket {
     super(bind);
   }
 
-  SocketConduit create (){
+  protected ASocketConduit create (){
     return new ASocketConduit();
   }
   
-  ASocketConduit accept() {
-    auto a = super.accept();
-    log.trace(format(">>> accept: {}", typeof(a).stringof));
-    return cast(ASocketConduit)a;
+  char[] toString() {
+    return format("AServerSocket: {}", socket.fileHandle);
   }
 }

@@ -9,7 +9,7 @@ import tangled.failure;
 import tangled.interfaces;
 import tangled.reactor;
 
-class ASocketConduit : SocketConduit, IASelectable
+class ASocketConduit : SocketConduit, IASelectable, IAConduit
 {
   IDeferred!(int) readDF;
   IDeferred!(int) writeDF;
@@ -23,15 +23,21 @@ class ASocketConduit : SocketConduit, IASelectable
       reactor.registerRead(this);
       readDF.yieldForResult();
     }
+    log.trace(">>> attempting receive");
     auto c = socket.receive(dst);
     if (c <= 0) {
+      log.trace(">>> disconnected");
       // handle disconnect
       return Eof;
     }
+    else
+      log.trace(">>> sent");
+
     return c;
   }
 
   void readyToRead() {
+    log.trace(format(">>> readyToRead {}", readDF));
     if (readDF) {
       readDF.callBack(0);
       readDF = null;
@@ -48,17 +54,22 @@ class ASocketConduit : SocketConduit, IASelectable
       reactor.registerWrite(this);
       writeDF.yieldForResult();
     }
+    log.trace(">>> attempting send");
     auto c = socket.send(src);
     if (c <= 0) {
+      log.trace(">>> disconnected");
       // handle disconnect
       return Eof;
     }
+    else
+      log.trace(">>> sent");
     return c;
   }
 
   void readyToWrite() {
+    log.trace(format(">>> readyToWrite {}", writeDF));
     if (writeDF) {
-      readDF.callBack(0);
+      writeDF.callBack(0);
       writeDF = null;
     }
   }
@@ -77,5 +88,8 @@ class ASocketConduit : SocketConduit, IASelectable
     auto a = cast(IPv4Address)socket.remoteAddress;
     return new InternetAddress(a.toAddrString, a.port);
   }
-
+  
+  char[] toString() {
+    return format("ASocketConduit: {}", fileHandle);
+  }
 }

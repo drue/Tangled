@@ -6,6 +6,7 @@ import tango.net.InternetAddress;
 import tango.io.selector.model.ISelector;
 import tangled.failure;
 import tangled.time;
+import tangled.conduit;
 
 enum SystemEvent { startup, shutdown, persist };
 enum Phase {before, during, after };
@@ -55,7 +56,7 @@ interface IDelayedCall {
 }
 
 interface IProtocol {
-  void makeConnection(IAConduit transport);
+  void makeConnection(ASocketConduit transport);
   /*  void dataReceived(char[] data);
   void connectionLost(Failure reason);
   void connectionMade();
@@ -96,11 +97,11 @@ interface IASelectable : ISelectable {
 
 interface IListener {
   int fileHandle();
-  IAConduit accept();
+  ASocketConduit accept();
   IProtocolFactory factory();
 }
 
-interface IAConduit : IConduit {
+interface IAConduit {
   InternetAddress remoteAddr();
 }
 
