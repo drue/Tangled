@@ -51,12 +51,16 @@ extern (C) {
     switch (reason) {
     case EV_READ:
       reactor.callInFiber(&s.readyToRead);
+      break;
     case EV_WRITE:
       reactor.callInFiber(&s.readyToWrite);
+      break;
     case EV_TIMEOUT:
       reactor.callInFiber(&s.timeout);
+      break;
     case EV_SIGNAL:
       reactor.callInFiber(&s.signal);
+      break;
     }
   }
 
@@ -117,7 +121,6 @@ class Reactor : IReactorCore
       log.trace(">>> tcpListen");
       auto c = new AServerSocket(bind);
       c.socket.blocking(false);
-      log.trace(format(">>> fd {}", c.socket.fileHandle));
       auto t = new TCPListener(bind, c, f);
       this.startListening(t);
       f.doStart();
@@ -125,26 +128,20 @@ class Reactor : IReactorCore
     }
 
     void _accept(IListener s) {
-      log.trace(">>> accepting");
       IAConduit c;
       
       assert(s);
       try {
 	c = s.accept();
-	assert(c, "now it's dead");
-	log.trace(format(">>> accept: {}", typeof(c).stringof));
 	
       }
       catch (Exception e){
 	log.error(format("Caught exception {}", e));
 	return;
       }
-      
-      log.trace(">>> accepted");
     }
 
     void callInFiber(Callable, Args...)(Callable f, Args args) {
-      log.trace(format(">>> callInFiber with args {} {}", f, args));
       try {
 	auto fiber = new Fiber(delegate void() {f(args);});
 	fiber.call();
@@ -155,7 +152,6 @@ class Reactor : IReactorCore
       catch (Exception e) {
 	log.error(format("Unhandled exception in fiber: {}", e));
       }
-      log.trace(">>> callInFiber done");
     }
 
     DelayedTypeGroup!(Delegate, Args).TDelayedCall callLater(Delegate, Args...)(double delay, Delegate cmd, Args args){
@@ -215,7 +211,6 @@ class Reactor : IReactorCore
     }
     
     void registerWrite(IASelectable s, bool once=true) {
-      log.trace(">>> registerWrite");
       if (once)
 	event_once(s.fileHandle, EV_WRITE, &socket_cb, cast (void *)s, null);
       else {
@@ -225,7 +220,6 @@ class Reactor : IReactorCore
     }
 
     void registerReadWrite(IASelectable s, bool once=true) {
-      log.trace(">>> registerReadWrite");
       if (once)
 	event_once(s.fileHandle, EV_READ | EV_WRITE, &socket_cb, cast (void *)s, null);
       else {
