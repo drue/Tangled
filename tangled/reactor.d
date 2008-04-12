@@ -1,18 +1,18 @@
 module tangled.reactor;
 
+import tango.core.Exception;
 import tango.core.Memory;
 import tango.core.Thread;
-import tango.core.Exception;
 import tango.math.Math;
 import tango.net.InternetAddress;
 import tango.stdc.stringz;
 import tango.text.convert.Layout;
-import tango.util.log.Log;
-import tango.util.log.model.ILevel;
-import tango.util.log.ConsoleAppender;
-import tango.util.log.DateLayout;
 import tango.text.convert.Layout;
 import tango.util.collection.ArrayBag;
+import tango.util.log.ConsoleAppender;
+import tango.util.log.DateLayout;
+import tango.util.log.Log;
+import tango.util.log.model.ILevel;
 
 import libevent.event;
 import libevent.http;
@@ -144,11 +144,8 @@ class Reactor : IReactorCore
 
     void callInFiber(Callable, Args...)(Callable f, Args args) {
       log.trace(">>> callInFiber");
-      void x() {
-	f(args);
-      }
       try {
-	auto fiber = new Fiber(&x, false);
+	auto fiber = new Fiber(delegate void() {f(args);});
 	fiber.call();
       }
       catch (FiberException e) {
@@ -157,15 +154,13 @@ class Reactor : IReactorCore
       catch (Exception e) {
 	log.error(format("Unhandled exception in fiber: {}", e));
       }
+      log.trace(">>> callInFiber done");
     }
 
     void callInFiber(Callable)(Callable f) {
       log.trace(">>> callInFiber");
-      void x() {
-	f();
-      }
       try {
-	auto fiber = new Fiber(&x, false);
+	auto fiber = new Fiber(delegate void() {f();});
 	fiber.call();
       }
       catch (FiberException e) {
@@ -174,7 +169,7 @@ class Reactor : IReactorCore
       catch (Exception e) {
 	log.error(format("Unhandled exception in fiber: {}", e));
       }
-
+      log.trace(">>> callInFiber done");
     }
 
     DelayedTypeGroup!(Delegate, Args).TDelayedCall callLater(Delegate, Args...)(double delay, Delegate cmd, Args args){

@@ -1,5 +1,6 @@
 module tt;
 
+import tango.core.Thread;
 import tango.net.InternetAddress;
 
 import tangled.interfaces;
@@ -7,11 +8,10 @@ import tangled.protocol;
 import tangled.reactor;
 
 int main() {
-  auto listener = reactor.tcpListen(new InternetAddress("127.0.0.1", 6060), new SimpleFactory!(Echo)());
-  void foo() {
-    log.trace("Testing CallLater.");
-  }
-  reactor.callLater(5.0, &foo);
+  auto f =  new SimpleFactory!(Echo)();
+  auto addr = new InternetAddress("127.0.0.1", 6060);
+  auto listener = reactor.tcpListen(addr, f);
+  
   reactor.run();
   return 0;
 }
