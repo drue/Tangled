@@ -123,11 +123,9 @@ template DelayedTypeGroup(Delegate, Args...) {
   static if(RealReturn.stringof != void.stringof)
     alias RealReturn Return;
   else
-    alias _void Return ;
+    alias void * Return ;
   alias DelayedCall!(Return, Callable, Params) TDelayedCall;
 }
-
-typedef int _void;
 
 class DelayedCall(Return, Callable, U...) : IDelayedCall {
   double t;
@@ -149,12 +147,12 @@ class DelayedCall(Return, Callable, U...) : IDelayedCall {
 
   void call() {
     called = true;
-    static if(Return.stringof != _void.stringof) {
+    static if(Return.stringof != (void*).stringof) {
       Return x = this.f(this.args);
     }
     else {
       this.f();
-      _void x;
+      void *x;
     }
     df.callback(x);
   }
