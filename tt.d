@@ -17,9 +17,14 @@ int main() {
 }
 
 class Echo : BaseProtocol {
-  void makeConnection(IAConduit transport) {
+  void makeConnection(IAConduit t) 
+    in {
+    assert(t, "bad conduit in makeConnection");
+  } body {
+    super.makeConnection(t);
+    log.trace(">>> makeConnection");
     char[] buf;
-    transport.write("Welcome to the Echo Server\n");
+    t.write("Welcome to the Echo Server\n");
     while(1) {
       transport.read(buf);
       transport.write(buf);

@@ -39,6 +39,7 @@ class ASocketConduit : SocketConduit, IASelectable
   }
 
   uint write(void[] src) {
+    log.trace(">>> conduit write");
     if(writeDF) {
       throw new Exception("TangledSocketConduit already in write");
     }
@@ -77,19 +78,4 @@ class ASocketConduit : SocketConduit, IASelectable
     return new InternetAddress(a.toAddrString, a.port);
   }
 
-}
-
-
-class AServerSocket : ServerSocket {
-  this(InternetAddress bind) {
-    super(bind);
-  }
-
-  protected ASocketConduit create (){
-    return new ASocketConduit();
-  }
-  
-  ASocketConduit accept() {
-    return cast(ASocketConduit)super.accept();
-  }
 }

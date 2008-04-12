@@ -23,6 +23,7 @@ import tangled.evhttp;
 import tangled.failure;
 import tangled.fiber;
 import tangled.interfaces;
+import tangled.socket;
 import tangled.time;
 
 version(build) {
@@ -124,22 +125,26 @@ class Reactor : IReactorCore
     void _accept(IListener s) {
       log.trace(">>> accepting");
       IAConduit c;
-      //log.trace(format(">>> &s {}", &s));
+      
       assert(s);
       try {
 	c = s.accept();
+	assert(c, "now it's dead");
+	log.trace(format(">>> accept: {}", typeof(c).stringof));
+	
       }
       catch (Exception e){
 	log.error(format("Caught exception {}", e));
 	return;
       }
-
+      
       log.trace(">>> accepted");
-      assert(s.factory);
+      /*      assert(s.factory);
       auto p = s.factory.buildProtocol();
       log.trace(">>> built");
+      assert(c, "bad conduit before callInFiber");
       reactor.callInFiber(&p.makeConnection, c);
-      log.trace(">>> connection made");
+      log.trace(">>> connection made");*/
     }
 
     void callInFiber(Callable, Args...)(Callable f, Args args) {
@@ -274,6 +279,11 @@ class TCPListener : IListener {
   }
   
   IAConduit accept() {
-    return cast(IAConduit)s.accept();
+    auto a = s.accept();
+    assert(a);
+    log.trace(format(">>> accept: {}", typeof(a).stringof));
+    auto p = f.buildProtocol();
+    reactor.callInFiber(&p.makeConnection, cast(IAConduit)a);
+    return cast(IAConduit)a;
   }
 }
