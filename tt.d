@@ -8,6 +8,10 @@ import tangled.reactor;
 
 int main() {
   auto listener = reactor.tcpListen(new InternetAddress("127.0.0.1", 6060), new SimpleFactory!(Echo)());
+  void foo() {
+    log.trace("Testing CallLater.");
+  }
+  reactor.callLater(5.0, &foo);
   reactor.run();
   return 0;
 }

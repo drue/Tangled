@@ -63,6 +63,12 @@ extern (C) {
     reactor._accept(s);
   }
 
+  void event_cb(int fd, short reason, void *usr) {
+    log.trace(">>> event_cb");
+    auto s = cast(IDelayedCall)usr;
+    reactor.callInFiber(&s.call);
+  }
+
   void log_cb(int severity, char *msg) {
     log.append(cast(ILevel.Level)severity, fromStringz(msg));
   }
@@ -148,6 +154,9 @@ class Reactor : IReactorCore
       catch (FiberException e) {
 	log.error(format("Fiber Exception {}", e));
       }
+      catch (Exception e) {
+	log.error(format("Unhandled exception in fiber: {}", e));
+      }
     }
 
     void callInFiber(Callable)(Callable f) {
@@ -155,21 +164,44 @@ class Reactor : IReactorCore
       void x() {
 	f();
       }
-      auto fiber = new Fiber(&x, false);
-      fiber.call();
+      try {
+	auto fiber = new Fiber(&x, false);
+	fiber.call();
+      }
+      catch (FiberException e) {
+	log.error(format("Fiber Exception {}", e));
+      }
+      catch (Exception e) {
+	log.error(format("Unhandled exception in fiber: {}", e));
+      }
+
     }
 
     DelayedTypeGroup!(Delegate, Args).TDelayedCall callLater(Delegate, Args...)(double delay, Delegate cmd, Args args){
       auto ti = time();
       auto t = (ti + delay);
       auto c = new DelayedTypeGroup!(Delegate, Args).TDelayedCall(t, cmd, args);
-      event ev;
-      timeval tv = {floor(delay), (delay - floor(delay)) * 1000000};
-      //GC.addRoot(&ev);
-      //GC.addRoot(&tv);
+      event *ev = new event;
+      timeval *tv = new timeval;
+      tv.tv_sec = cast(int)floor(delay);
+      tv.tv_usec = cast(int)(delay - floor(delay)) * 1000000;
 
-      event_set(&ev, -1, 0, event_cb, arg);
-      event_add(&ev, &tv);
+      event_set(ev, -1, 0, &event_cb, cast(void *)c);
+      event_add(ev, tv);
+      return c;
+    }
+
+    DelayedTypeGroup!(Delegate).TDelayedCall callLater(Delegate)(double delay, Delegate cmd){
+      auto ti = time();
+      auto t = (ti + delay);
+      auto c = new DelayedTypeGroup!(Delegate).TDelayedCall(t, cmd);
+      event *ev = new event;
+      timeval *tv = new timeval;
+      tv.tv_sec = cast(int)floor(delay);
+      tv.tv_usec = cast(int)(delay - floor(delay)) * 1000000;
+
+      event_set(ev, -1, 0, &event_cb, cast(void *)c);
+      event_add(ev, tv);
       return c;
     }
 
@@ -190,7 +222,7 @@ class Reactor : IReactorCore
     void registerRead(IASelectable s, bool once=true) {
       log.trace(">>> registerRead");
       if (once)
-	event_once(s.fileHandle, EV_READ, &socket_cb, &s, null);
+	event_once(s.fileHandle, EV_READ, &socket_cb, cast(void*)s, null);
       else {
 	event *ev = new event;
 	event_set(ev, s.fileHandle, EV_READ, &socket_cb, cast(void *)s);
