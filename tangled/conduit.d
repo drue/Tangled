@@ -9,17 +9,19 @@ import tangled.failure;
 import tangled.interfaces;
 import tangled.reactor;
 
+enum : uint {Eof = uint.max};
+
 class ASocketConduit : SocketConduit, IASelectable, IAConduit
 {
-  IDeferred!(int) readDF;
-  IDeferred!(int) writeDF;
+  IDeferred!(void) readDF;
+  IDeferred!(void) writeDF;
 
   uint read(void[] dst) {
     if(readDF) {
       throw new Exception("TangledSocketConduit already in read");
     }
     else {
-      readDF = new Deferred!(int);
+      readDF = new Deferred!(void);
       reactor.registerRead(this);
       readDF.yieldForResult();
     }
@@ -31,7 +33,7 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
       return Eof;
     }
     else
-      log.trace(">>> sent");
+      log.trace(">>> received");
 
     return c;
   }
@@ -39,7 +41,7 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
   void readyToRead() {
     log.trace(format(">>> readyToRead {}", readDF));
     if (readDF) {
-      readDF.callBack(0);
+      readDF.callBack();
       readDF = null;
     }
   }
@@ -50,7 +52,7 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
       throw new Exception("TangledSocketConduit already in write");
     }
     else {
-      writeDF = new Deferred!(int);
+      writeDF = new Deferred!(void);
       reactor.registerWrite(this);
       writeDF.yieldForResult();
     }
@@ -69,7 +71,7 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
   void readyToWrite() {
     log.trace(format(">>> readyToWrite {}", writeDF));
     if (writeDF) {
-      writeDF.callBack(0);
+      writeDF.callBack();
       writeDF = null;
     }
   }

@@ -33,10 +33,18 @@ interface IHTTPServer {
 }
 
 interface IDeferred (T) {
-  void addCallback(T delegate(T) f);
-  void callBack(T res);
-  void callback(T res);
-  T yieldForResult();
+  static if(typeof(T).stringof != void.stringof) {
+    void addCallback(T delegate(T) f);
+    void callBack(T res);
+    void callback(T res);
+    T yieldForResult();
+  }
+  else {
+    void addCallback(T delegate() f);
+    void callBack();
+    void callback();
+    T yieldForResult();
+  }
 }
 
 interface IReactorCore {
