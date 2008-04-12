@@ -8,17 +8,11 @@ import tangled.interfaces;
 
 public class Deferred (T) : IDeferred!(T)
 {
-  static if(typeof(T).stringof != void.stringof)
-    alias LinkSeq!(T delegate(T)) LinkSeqT;
-  else
-    alias LinkSeq!(T delegate()) LinkSeqT;
+  alias LinkSeq!(T delegate(T)) LinkSeqT;
   
   bool called = false;
   private LinkSeqT callbacks;
-
-  static if(typeof(T).stringof != void.stringof)
-    private T result;
-
+  private T result;
   private LinkSeq!(Fiber) waiters;
 
   this(){
@@ -27,87 +21,44 @@ public class Deferred (T) : IDeferred!(T)
     called = false;
   }
 
-  static if(typeof(T).stringof != void.stringof) {
-    public void addCallback(T delegate(T) f) {
+  public void addCallback(T delegate(T) f)
+  {
     this.callbacks.append(f);
     if (this.called)
-	this.result = f(this.result);     
-    }
+      this.result = f(this.result);     
   }
-  else {
-    public void addCallback(T delegate() f) {
-      if (this.called)
-	f();     
-    }
-  }
-  
-  static if(typeof(T).stringof != void.stringof) {
-    public void callBack(T res) {
-      if (!this.called) {
-	this.result = res;
-	this.called = true;
-	this.runCallbacks(this.result);
-      }
-    }
-  }   
-  else {
-    public void callBack() {
-      if (!this.called) {
-	this.called = true;
-	this.runCallbacks();
-      }
-    }
-  }
-  
-  static if(typeof(T).stringof != void.stringof) {
-    public void callback(T res) {
-	callBack(res);
-    }
-  }
-  else {
-    public void callback() {
-	callBack();
+
+  public void callBack(T res)
+  {
+    if (!this.called) {
+      this.result = res;
+      this.called = true;
+      this.runCallbacks(this.result);
     }
   }
 
-  static if(typeof(T).stringof != void.stringof) {
-    private void runCallbacks(T res) {
-      T tmp = res;
-      foreach (cb; this.callbacks){
-	tmp = cb(tmp);
-      }
-      foreach (waiter; this.waiters) {
-	waiter.call();
-      }
-      waiters = null;
-    }
+  public void callback(T res) {
+    callBack(res);
   }
-  else {
-    private void runCallbacks() {
-      foreach (cb; this.callbacks){
-	  cb();
-      }
-      foreach (waiter; this.waiters) {
-	waiter.call();
-      }
-      waiters = null;
+
+  private void runCallbacks(T res) {
+    T tmp = res;
+    foreach (cb; this.callbacks){
+      tmp = cb(tmp);
     }
+    foreach (waiter; this.waiters) {
+      waiter.call();
+    }
+    waiters = null;
   }
-  
 
   public T yieldForResult() {
     if (this.called)
-      static if(typeof(T).stringof != void.stringof)
-	return this.result;
-      else
-	return;
+      return this.result;
     waiters.append(Fiber.getThis());
     Fiber.yield();
     // XXX check for exception and throw if necessary
-    static if(typeof(T).stringof != void.stringof)
-      return this.result;
-    else
-      return;
+    return this.result;
   }
 
   unittest
