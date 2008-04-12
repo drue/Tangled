@@ -28,6 +28,8 @@ class Echo : BaseProtocol {
     t.write("Welcome to the Echo Server\n");
     while(1) {
       auto c = transport.read(buf);
+      if (c == Eof)
+	break;
       transport.write(buf[0..c]);
     }
   }
