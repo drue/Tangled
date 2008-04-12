@@ -166,7 +166,7 @@ class Reactor : IReactorCore
       timeval *tv = new timeval;
       tv.tv_sec = cast(int)floor(delay);
       tv.tv_usec = cast(int)(delay - floor(delay)) * 1000000;
-      GC.addRoot(ev);GC.addRoot(tv);
+      //GC.addRoot(ev);GC.addRoot(tv);
 
       event_set(ev, -1, 0, &event_cb, cast(void *)c);
       event_add(ev, tv);
@@ -179,7 +179,7 @@ class Reactor : IReactorCore
       auto c = new DelayedTypeGroup!(Delegate).TDelayedCall(t, cmd);
       event *ev = new event;
       timeval *tv = new timeval;
-      GC.addRoot(ev);GC.addRoot(tv);
+      //GC.addRoot(ev);GC.addRoot(tv);
 
       tv.tv_sec = cast(int)floor(delay);
       tv.tv_usec = cast(int)(delay - floor(delay)) * 1000000;
@@ -192,12 +192,9 @@ class Reactor : IReactorCore
     void startListening(IListener s) {
       // need stop listening
 	event *ev = new event;
-	//events.add(ev);
-	//GC.addRoot(&ev);
-	//GC.addRoot(&f);
 	event_set(ev, s.fileHandle, EV_READ|EV_PERSIST, &listen_cb, cast(void *)s);
 	event_base_set(evbase, ev);
-	GC.addRoot(ev);
+	//GC.addRoot(ev);
      
 	if(int i = event_add(ev, null) != 0)
 	  log.error(format(">> startListening failed to add event code {}", i));
