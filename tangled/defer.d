@@ -153,7 +153,7 @@ class DelayedCall(Return, Callable, U...) : IDelayedCall {
       Return x = this.f(this.args);
     }
     else {
-      this.f(this.args);
+      this.f();
       _void x;
     }
     df.callback(x);

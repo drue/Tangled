@@ -169,22 +169,6 @@ class Reactor : IReactorCore
       return c;
     }
 
-    DelayedTypeGroup!(Delegate).TDelayedCall callLater(Delegate)(double delay, Delegate cmd){
-      auto ti = time();
-      auto t = (ti + delay);
-      auto c = new DelayedTypeGroup!(Delegate).TDelayedCall(t, cmd);
-      event *ev = new event;
-      timeval *tv = new timeval;
-      //GC.addRoot(ev);GC.addRoot(tv);
-
-      tv.tv_sec = cast(int)floor(delay);
-      tv.tv_usec = cast(int)(delay - floor(delay)) * 1000000;
-
-      event_set(ev, -1, 0, &event_cb, cast(void *)c);
-      event_add(ev, tv);
-      return c;
-    }
-
     void startListening(IListener s) {
       // need stop listening
 	event *ev = new event;
