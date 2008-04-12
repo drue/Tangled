@@ -2,6 +2,8 @@
 module libevent.event;
 align(4):
 public import tango.net.Socket;
+
+extern (C) {
 const int EVLIST_TIMEOUT = 0x01;
 const int EVLIST_INSERTED = 0x02;
 const int EVLIST_SIGNAL = 0x04;
@@ -29,7 +31,7 @@ alias _BCD_func__272 everrorcb;
 alias void function(bufferevent *, void *) _BCD_func__273;
 alias _BCD_func__273 evbuffercb;
 alias void function(evbuffer *, uint, uint, void *) _BCD_func__383;
-alias void function(int, char *) _BCD_func__303;
+alias extern(C) void function(int, char *) _BCD_func__303;
 alias _BCD_func__303 event_log_cb;
 alias void * function() _BCD_func__433;
 alias int function(void *, event *) _BCD_func__434;
@@ -79,82 +81,80 @@ extern (C) int event_base_dispatch(void *);
 extern (C) int event_dispatch();
 extern (C) void * event_init();
 struct event_watermark {
-uint low;
-uint high;
+  uint low;
+  uint high;
 }
-struct bufferevent {
-event ev_read;
-event ev_write;
-evbuffer * input;
-evbuffer * output;
-event_watermark wm_read;
-event_watermark wm_write;
-_BCD_func__273 readcb;
-_BCD_func__273 writecb;
-_BCD_func__272 errorcb;
-void * cbarg;
-int timeout_read;
-int timeout_write;
-short enabled;
-}
-struct evbuffer {
-char * buffer;
-char * orig_buffer;
-uint misalign;
-uint totallen;
-uint off;
-_BCD_func__383 cb;
-void * cbarg;
-}
-struct eventop {
-char * name;
-_BCD_func__433 init;
-_BCD_func__434 add;
-_BCD_func__434 del;
-_BCD_func__435 recalc;
-_BCD_func__436 dispatch;
-}
-struct N5event3__3E {
-event * tqe_next;
-event * * tqe_prev;
-}
-struct N5event3__4E {
-event * tqe_next;
-event * * tqe_prev;
-}
-struct N5event3__5E {
-event * tqe_next;
-event * * tqe_prev;
-}
-struct N5event3__6E {
-event * rbe_left;
-event * rbe_right;
-event * rbe_parent;
-int rbe_color;
-}
+  struct bufferevent {
+    event ev_read;
+    event ev_write;
+    evbuffer * input;
+    evbuffer * output;
+    event_watermark wm_read;
+    event_watermark wm_write;
+    _BCD_func__273 readcb;
+    _BCD_func__273 writecb;
+    _BCD_func__272 errorcb;
+    void * cbarg;
+    int timeout_read;
+    int timeout_write;
+    short enabled;
+  }
+    struct evbuffer {
+      char * buffer;
+      char * orig_buffer;
+      uint misalign;
+      uint totallen;
+      uint off;
+      _BCD_func__383 cb;
+      void * cbarg;
+    }
+      struct eventop {
+	char * name;
+	_BCD_func__433 init;
+	_BCD_func__434 add;
+	_BCD_func__434 del;
+	_BCD_func__435 recalc;
+	_BCD_func__436 dispatch;
+      }
+	struct N5event3__3E {
+	  event * tqe_next;
+	  event * * tqe_prev;
+	}
+	  struct N5event3__4E {
+	    event * tqe_next;
+	    event * * tqe_prev;
+	  }
+	    struct N5event3__5E {
+	      event * tqe_next;
+	      event * * tqe_prev;
+	    }
+	      struct N5event3__6E {
+		event * rbe_left;
+		event * rbe_right;
+		event * rbe_parent;
+		int rbe_color;
+	      }
+
 struct event {
-N5event3__3E ev_next;
-N5event3__4E ev_active_next;
-N5event3__5E ev_signal_next;
-N5event3__6E ev_timeout_node;
-void * ev_base;
-int ev_fd;
-short ev_events;
-short ev_ncalls;
-short * ev_pncalls;
-timeval ev_timeout;
-int ev_pri;
-_BCD_func__388 ev_callback;
-void * ev_arg;
-int ev_res;
-int ev_flags;
+  N5event3__3E ev_next;
+  N5event3__4E ev_active_next;
+  N5event3__5E ev_signal_next;
+  uint min_heap_idx;
+  void *ev_base;
+  int ev_fd;
+  short ev_events;
+  short ev_ncalls;
+  short * ev_pncalls;
+  timeval ev_timeout;
+  int ev_pri;
+  _BCD_func__388 ev_callback;
+  void * ev_arg;
+  int ev_res;
+  int ev_flags;
 }
 
 struct evkeyval {
-  struct {
-    evkeyval *tqe_next;
-    evkeyval **tqe_prev;
-  };
+  evkeyvalq next;
   char *key;
   char *value;
 };
@@ -164,3 +164,4 @@ struct evkeyvalq {
 	evkeyval **tqh_last;
 };
 
+}

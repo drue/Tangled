@@ -7,7 +7,7 @@ import tangled.protocol;
 import tangled.reactor;
 
 int main() {
-  reactor.tcpListen(new InternetAddress("127.0.0.1", 6060), new SimpleFactory!(Echo)());
+  auto listener = reactor.tcpListen(new InternetAddress("127.0.0.1", 6060), new SimpleFactory!(Echo)());
   reactor.run();
   return 0;
 }
