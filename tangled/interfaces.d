@@ -32,11 +32,16 @@ interface IHTTPServer {
   void registerURI(char[] URI, IHTTPProtocolFactory fac);
 }
 
-interface IDeferred (T) {
-  void addCallback(T delegate(T) f);
+interface IDeferred (T...) {
+  static if (typeof(T).length != 0)
+    alias T[0] Return;
+  else
+    alias void Return;
+   
+  void addCallback(Return delegate(T) f);
   void callBack(T res);
   void callback(T res);
-  T yieldForResult();
+  Return yieldForResult();
 }
 
 interface IReactorCore {

@@ -6,13 +6,14 @@ import tango.core.Traits;
 
 import tangled.interfaces;
 
-public class Deferred (T) : IDeferred!(T)
+public class Deferred (T...) : IDeferred!(T)
 {
-  alias LinkSeq!(T delegate(T)) LinkSeqT;
+  alias LinkSeq!(Return delegate(T)) LinkSeqT;
   
   bool called = false;
   private LinkSeqT callbacks;
-  private T result;
+  static if(T.length != 0)
+    private T[0] result;
   private LinkSeq!(Fiber) waiters;
 
   this(){
@@ -21,19 +22,23 @@ public class Deferred (T) : IDeferred!(T)
     called = false;
   }
 
-  public void addCallback(T delegate(T) f)
+  public void addCallback(Return delegate(T) f)
   {
     this.callbacks.append(f);
     if (this.called)
-      this.result = f(this.result);     
+      static if(T.length != 0)
+	this.result = f(this.result);
+      else
+	f();
   }
 
   public void callBack(T res)
   {
     if (!this.called) {
-      this.result = res;
+      static if(T.length != 0)
+	this.result = res[0];
       this.called = true;
-      this.runCallbacks(this.result);
+      this.runCallbacks(res);
     }
   }
 
@@ -42,9 +47,13 @@ public class Deferred (T) : IDeferred!(T)
   }
 
   private void runCallbacks(T res) {
-    T tmp = res;
+    static if(T.length != 0)
+      T[0] tmp = res[0];
     foreach (cb; this.callbacks){
-      tmp = cb(tmp);
+      static if(T.length != 0)
+	tmp = cb(tmp);
+      else
+	cb();
     }
     foreach (waiter; this.waiters) {
       waiter.call();
@@ -52,13 +61,20 @@ public class Deferred (T) : IDeferred!(T)
     waiters = null;
   }
 
-  public T yieldForResult() {
-    if (this.called)
-      return this.result;
+  public Return yieldForResult() {
+    if (this.called) {
+      static if(T.length != 0)
+	return this.result;
+      else
+	return;
+    }
     waiters.append(Fiber.getThis());
     Fiber.yield();
     // XXX check for exception and throw if necessary
-    return this.result;
+    static if(T.length != 0)
+      return this.result;
+    else
+      return;
   }
 
   unittest
