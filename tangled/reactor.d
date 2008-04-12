@@ -2,6 +2,7 @@ module tangled.reactor;
 
 import tango.core.Memory;
 import tango.core.Thread;
+import tango.core.Exception;
 import tango.math.Math;
 import tango.net.InternetAddress;
 import tango.stdc.stringz;
@@ -43,7 +44,7 @@ static this(){
 extern (C) {
 
   void socket_cb(int fd, short reason, void *usr) {
-    IASelectable s = *cast(IASelectable *)usr;
+    IASelectable s = cast(IASelectable )usr;
     switch (reason) {
     case EV_READ:
       reactor.callInFiber(&s.readyToRead);
@@ -58,23 +59,8 @@ extern (C) {
 
   void listen_cb(int fd, short reason, void *usr) {
     log.trace(">>> listen_cb");
-    IListener s = *cast(IListener *)usr;
-    log.trace(">>> accepting");
-    IAConduit c;
-
-    try {
-      c = s.accept();
-    }
-    catch (Exception e){
-      log.error(format("Caught exception {}", e));
-      return;
-    }
-
-    log.trace(">>> accepted");
-    auto p = s.factory.buildProtocol();
-    log.trace(">>> built");
-    reactor.callInFiber(&p.makeConnection, c);
-    log.trace(">>> connection made");
+    auto s = cast(IListener)usr;
+    reactor._accept(s);
   }
 
   void log_cb(int severity, char *msg) {
@@ -86,11 +72,9 @@ extern (C) {
 class Reactor : IReactorCore
 {
     event_base evbase;
-    ArrayBag!(event) events;
 
     this() {
       evbase = event_init();
-      events = new ArrayBag!(event);
       event_set_log_callback(&log_cb);
     }
 
@@ -124,10 +108,32 @@ class Reactor : IReactorCore
       log.trace(">>> tcpListen");
       auto c = new AServerSocket(bind);
       c.socket.blocking(false);
+      log.trace(format(">>> fd {}", c.socket.fileHandle));
       auto t = new TCPListener(bind, c, f);
       this.startListening(t);
       f.doStart();
       return t;
+    }
+
+    void _accept(IListener s) {
+      log.trace(">>> accepting");
+      IAConduit c;
+      //log.trace(format(">>> &s {}", &s));
+      assert(s);
+      try {
+	c = s.accept();
+      }
+      catch (Exception e){
+	log.error(format("Caught exception {}", e));
+	return;
+      }
+
+      log.trace(">>> accepted");
+      assert(s.factory);
+      auto p = s.factory.buildProtocol();
+      log.trace(">>> built");
+      reactor.callInFiber(&p.makeConnection, c);
+      log.trace(">>> connection made");
     }
 
     void callInFiber(Callable, Args...)(Callable f, Args args) {
@@ -135,8 +141,13 @@ class Reactor : IReactorCore
       void x() {
 	f(args);
       }
-      auto fiber = new Fiber(&x, false);
-      fiber.call();
+      try {
+	auto fiber = new Fiber(&x, false);
+	fiber.call();
+      }
+      catch (FiberException e) {
+	log.error(format("Fiber Exception {}", e));
+      }
     }
 
     void callInFiber(Callable)(Callable f) {
@@ -166,10 +177,9 @@ class Reactor : IReactorCore
       // need stop listening
 	event *ev = new event;
 	//events.add(ev);
-	auto f = s.factory();
 	//GC.addRoot(&ev);
 	//GC.addRoot(&f);
-	event_set(ev, s.fileHandle, EV_READ|EV_PERSIST, &listen_cb, &f);
+	event_set(ev, s.fileHandle, EV_READ|EV_PERSIST, &listen_cb, cast(void *)s);
 	event_base_set(evbase, ev);
 	if(int i = event_add(ev, null) != 0)
 	  log.error(format(">> startListening failed to add event code {}", i));
@@ -182,19 +192,16 @@ class Reactor : IReactorCore
       if (once)
 	event_once(s.fileHandle, EV_READ, &socket_cb, &s, null);
       else {
-	event ev;
-	timeval tv;
-	GC.addRoot(&ev);
-	GC.addRoot(&tv);
-	event_set(&ev, s.fileHandle, EV_READ, &socket_cb, &s);
-	event_add(&ev, &tv);
+	event *ev = new event;
+	event_set(ev, s.fileHandle, EV_READ, &socket_cb, cast(void *)s);
+	event_add(ev, null);
       }
     }
     
     void registerWrite(IASelectable s, bool once=true) {
       log.trace(">>> registerWrite");
       if (once)
-	event_once(s.fileHandle, EV_WRITE, &socket_cb, &s, null);
+	event_once(s.fileHandle, EV_WRITE, &socket_cb, cast (void *)s, null);
       else {
 	event ev;
 	//event_set(ev, cast(int)s.fileHandle, EV_WRITE, &socket_cb, &s);
@@ -202,8 +209,9 @@ class Reactor : IReactorCore
     }
 
     void registerReadWrite(IASelectable s, bool once=true) {
+      log.trace(">>> registerReadWrite");
       if (once)
-	event_once(s.fileHandle, EV_READ | EV_WRITE, &socket_cb, &s, null);
+	event_once(s.fileHandle, EV_READ | EV_WRITE, &socket_cb, cast (void *)s, null);
       else {
 	event ev;
 	//event_set(ev, cast(int)s.fileHandle, EV_READ | EV_WRITE, &socket_cb, &s);
