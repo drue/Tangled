@@ -13,15 +13,15 @@ enum : uint {Eof = uint.max};
 
 class ASocketConduit : SocketConduit, IASelectable, IAConduit
 {
-  IDeferred!(void) readDF;
-  IDeferred!(void) writeDF;
+  IDeferred!() readDF;
+  IDeferred!() writeDF;
 
   uint read(void[] dst) {
     if(readDF) {
       throw new Exception("TangledSocketConduit already in read");
     }
     else {
-      readDF = new Deferred!(void);
+      readDF = new Deferred!();
       reactor.registerRead(this);
       readDF.yieldForResult();
     }
@@ -52,7 +52,7 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
       throw new Exception("TangledSocketConduit already in write");
     }
     else {
-      writeDF = new Deferred!(void);
+      writeDF = new Deferred!();
       reactor.registerWrite(this);
       writeDF.yieldForResult();
     }
