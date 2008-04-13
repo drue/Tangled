@@ -1,5 +1,6 @@
 module tangled.evhttp;
 
+import tango.core.Exception;
 import tango.net.InternetAddress;
 import tango.stdc.stringz;
 
@@ -41,19 +42,22 @@ class EVHServer : IHTTPServer {
 
 class EVHRequest : IHTTPRequest {
   evhttp_request *req;
-  evbuffer *buf;
+  evkeyvalq params;
+
   this(evhttp_request *nreq) {
     req = nreq;
-    buf = evbuffer_new();
   }
 
   char[] remoteHost(){
     return fromStringz(req.remote_host);
   }
   
-  void sendReply(int code, char[] reason, char[]data) {
+  void sendPage(int code, char[] reason, char[]data) {
+    evbuffer *buf = evbuffer_new();
     evbuffer_add(buf, data.ptr, data.length);
-    evhttp_send_reply(req, code, toStringz(reason), buf);
+    evhttp_response_code(req, code, toStringz(reason));
+    evhttp_send_page(req, buf);
   }
+
 }
 

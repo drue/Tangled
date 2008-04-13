@@ -77,7 +77,7 @@ interface IProtocolFactory {
 
 interface IHTTPRequest {
   char[] remoteHost();
-  void sendReply(int code, char[] reason, char[]data);
+  void sendPage(int code, char[] reason, char[]data);
 }
 
 interface IHTTPProtocolFactory {

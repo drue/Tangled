@@ -16,7 +16,8 @@ int main() {
   auto addr = new InternetAddress("127.0.0.1", 6060);
   auto listener = reactor.tcpListen(addr, f);
   auto http = reactor.httpListen(new InternetAddress("127.0.0.1", 7070));
-  http.registerGenericHandler(new SimpleHTTPFactory!(HEcho)());
+  auto fh = new SimpleHTTPFactory!(HEcho)();
+  http.registerGenericHandler(fh);
   reactor.callLater(2.0, delegate(){log.error("CallLater Works.");});
   reactor.run();
   return 0;
@@ -51,13 +52,7 @@ class HEcho : BaseHTTPProtocol {
 
   void handleRequest(IHTTPRequest req) {
     super.handleRequest(req);
-    /*while(1) {
-      auto c = transport.read(buf);
-      if(c == Eof)
-	break;
-	input.append(buf[0..c]);
-	}*/
-    req.sendReply(HTTP_OK, "OK", "Gotcha!\n");
+    req.sendPage(HTTP_OK, "OK", format("Gotcha! : {}\r\n", req.remoteHost()));
   }
 
 }
