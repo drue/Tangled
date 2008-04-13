@@ -26,7 +26,7 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
       readDF.yieldForResult();
     }
     log.trace(">>> attempting receive");
-    auto c = socket.receive(dst);
+    auto c = _read(dst);
     if (c <= 0) {
       log.trace(">>> disconnected");
       // handle disconnect
@@ -57,7 +57,7 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
       writeDF.yieldForResult();
     }
     log.trace(">>> attempting send");
-    auto c = socket.send(src);
+    auto c = _write(src);
     if (c <= 0) {
       log.trace(">>> disconnected");
       // handle disconnect
@@ -94,4 +94,13 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
   char[] toString() {
     return format("ASocketConduit: {}", fileHandle);
   }
+
+  protected int _read(void[] dst) {
+    return socket.receive(dst);
+  }
+
+  protected int _write(void[] src) {
+    return socket.send(src);
+  }
 }
+
