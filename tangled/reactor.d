@@ -84,137 +84,137 @@ extern (C) {
 
 class Reactor : IReactorCore
 {
-    event_base evbase;
+  event_base evbase;
 
-    this() {
-      evbase = event_init();
-      event_set_log_callback(&log_cb);
-    }
+  this() {
+    evbase = event_init();
+    event_set_log_callback(&log_cb);
+  }
 
-    IDeferred!(char[]) resolve(char[] name, int timeout) {
-      assert(0);
-      return new Deferred!(char[]);
-    }
+  IDeferred!(char[]) resolve(char[] name, int timeout) {
+    assert(0);
+    return new Deferred!(char[]);
+  }
 
-    void run() {
-      log.info("Entering main event loop.");
-      event_base_dispatch(evbase);
-    }
+  void run() {
+    log.info("Entering main event loop.");
+    event_base_dispatch(evbase);
+  }
 
-    void crash() { 
-      assert(0);
-    }
+  void crash() { 
+    assert(0);
+  }
 
-    void iterate(double delay) {
-      assert(0);
-    }
+  void iterate(double delay) {
+    assert(0);
+  }
 
-    void fireSystemEvent(SystemEvent event) {
-      assert(0);
-    }
+  void fireSystemEvent(SystemEvent event) {
+    assert(0);
+  }
 
-    IHTTPServer httpListen(InternetAddress bind) {
-      return new EVHServer(evbase, bind);
-    }
+  IHTTPServer httpListen(InternetAddress bind) {
+    return new EVHServer(evbase, bind);
+  }
 
-    IListener tcpListen(InternetAddress bind, IProtocolFactory f) {
-      log.trace(">>> tcpListen");
-      auto c = new AServerSocket(bind);
-      c.socket.blocking(false);
-      auto t = new TCPListener(bind, c, f);
-      this.startListening(t);
-      f.doStart();
-      return t;
-    }
+  IListener tcpListen(InternetAddress bind, IProtocolFactory f) {
+    log.trace(">>> tcpListen");
+    auto c = new AServerSocket(bind);
+    c.socket.blocking(false);
+    auto t = new TCPListener(bind, c, f);
+    this.startListening(t);
+    f.doStart();
+    return t;
+  }
 
-    void _accept(IListener s) {
-      IAConduit c;
+  void _accept(IListener s) {
+    IAConduit c;
       
-      assert(s);
-      try {
-	c = s.accept();
+    assert(s);
+    try {
+      c = s.accept();
 	
-      }
-      catch (Exception e){
-	log.error(format("Caught exception {}", e));
-	return;
-      }
     }
-
-    void callInFiber(Callable, Args...)(Callable f, Args args) {
-      try {
-	auto fiber = new Fiber(delegate void() {f(args);});
-	fiber.call();
-      }
-      catch (FiberException e) {
-	log.error(format("Fiber Exception {}", e));
-      }
-      catch (Exception e) {
-	log.error(format("Unhandled exception in fiber: {}", e));
-      }
+    catch (Exception e){
+      log.error(format("Caught exception {}", e));
+      return;
     }
+  }
 
-    DelayedTypeGroup!(Delegate, Args).TDelayedCall callLater(Delegate, Args...)(double delay, Delegate cmd, Args args){
-      auto ti = time();
-      auto t = (ti + delay);
-      auto c = new DelayedTypeGroup!(Delegate, Args).TDelayedCall(t, cmd, args);
-      event *ev = new event;
-      timeval *tv = new timeval;
-      tv.tv_sec = cast(int)floor(delay);
-      tv.tv_usec = cast(int)(delay - floor(delay)) * 1000000;
-      //GC.addRoot(ev);GC.addRoot(tv);
-
-      event_set(ev, -1, 0, &event_cb, cast(void *)c);
-      event_add(ev, tv);
-      return c;
+  void callInFiber(Callable, Args...)(Callable f, Args args) {
+    try {
+      auto fiber = new Fiber(delegate void() {f(args);});
+      fiber.call();
     }
+    catch (FiberException e) {
+      log.error(format("Fiber Exception {}", e));
+    }
+    catch (Exception e) {
+      log.error(format("Unhandled exception in fiber: {}", e));
+    }
+  }
 
-    void startListening(IListener s) {
-      // need stop listening
-	event *ev = new event;
-	event_set(ev, s.fileHandle, EV_READ|EV_PERSIST, &listen_cb, cast(void *)s);
-	event_base_set(evbase, ev);
-	//GC.addRoot(ev);
+  DelayedTypeGroup!(Delegate, Args).TDelayedCall callLater(Delegate, Args...)(double delay, Delegate cmd, Args args){
+    auto ti = time();
+    auto t = (ti + delay);
+    auto c = new DelayedTypeGroup!(Delegate, Args).TDelayedCall(t, cmd, args);
+    event *ev = new event;
+    timeval *tv = new timeval;
+    tv.tv_sec = cast(int)floor(delay);
+    tv.tv_usec = cast(int)(delay - floor(delay)) * 1000000;
+    //GC.addRoot(ev);GC.addRoot(tv);
+
+    event_set(ev, -1, 0, &event_cb, cast(void *)c);
+    event_add(ev, tv);
+    return c;
+  }
+
+  void startListening(IListener s) {
+    // need stop listening
+    event *ev = new event;
+    event_set(ev, s.fileHandle, EV_READ|EV_PERSIST, &listen_cb, cast(void *)s);
+    event_base_set(evbase, ev);
+    //GC.addRoot(ev);
      
-	if(int i = event_add(ev, null) != 0)
-	  log.error(format(">> startListening failed to add event code {}", i));
-	else
-	  log.trace(">>> startListening event added");
-    }
+    if(int i = event_add(ev, null) != 0)
+      log.error(format(">> startListening failed to add event code {}", i));
+    else
+      log.trace(">>> startListening event added");
+  }
 
-    void registerRead(IASelectable s, bool once=true) {
-      log.trace(">>> registerRead");
-      if (once)
-	event_once(s.fileHandle, EV_READ, &socket_cb, cast(void*)s, null);
-      else {
-	event *ev = new event;
-	GC.addRoot(ev);
-	event_set(ev, s.fileHandle, EV_READ, &socket_cb, cast(void *)s);
-	event_add(ev, null);
-      }
+  void registerRead(IASelectable s, bool once=true) {
+    log.trace(">>> registerRead");
+    if (once)
+      event_once(s.fileHandle, EV_READ, &socket_cb, cast(void*)s, null);
+    else {
+      event *ev = new event;
+      GC.addRoot(ev);
+      event_set(ev, s.fileHandle, EV_READ, &socket_cb, cast(void *)s);
+      event_add(ev, null);
     }
+  }
     
-    void registerWrite(IASelectable s, bool once=true) {
-      if (once)
-	event_once(s.fileHandle, EV_WRITE, &socket_cb, cast (void *)s, null);
-      else {
-	event ev;
-	//event_set(ev, cast(int)s.fileHandle, EV_WRITE, &socket_cb, &s);
-      }
+  void registerWrite(IASelectable s, bool once=true) {
+    if (once)
+      event_once(s.fileHandle, EV_WRITE, &socket_cb, cast (void *)s, null);
+    else {
+      event ev;
+      //event_set(ev, cast(int)s.fileHandle, EV_WRITE, &socket_cb, &s);
     }
+  }
 
-    void registerReadWrite(IASelectable s, bool once=true) {
-      if (once)
-	event_once(s.fileHandle, EV_READ | EV_WRITE, &socket_cb, cast (void *)s, null);
-      else {
-	event ev;
-	//event_set(ev, cast(int)s.fileHandle, EV_READ | EV_WRITE, &socket_cb, &s);
-      }
+  void registerReadWrite(IASelectable s, bool once=true) {
+    if (once)
+      event_once(s.fileHandle, EV_READ | EV_WRITE, &socket_cb, cast (void *)s, null);
+    else {
+      event ev;
+      //event_set(ev, cast(int)s.fileHandle, EV_READ | EV_WRITE, &socket_cb, &s);
     }
+  }
     
-    void unregister(IASelectable s) {
+  void unregister(IASelectable s) {
       
-    }
+  }
 }
 
 class TCPListener : IListener {
