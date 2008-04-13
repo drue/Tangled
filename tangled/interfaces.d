@@ -19,7 +19,7 @@ interface IConnector {
 }
 
 interface IReactorTCP {
-  ISelectable listenTCP(InternetAddress bind, IProtocolFactory factory, int backlog);
+  IListener tcpListen(InternetAddress bind, IProtocolFactory f);
   void stopListeningTCP(ISelectable s);
   void connectTCP(InternetAddress dest, IProtocol protocol, int timeout, InternetAddress bind);
 }
@@ -30,6 +30,7 @@ interface IReactorHTTP {
 
 interface IHTTPServer {
   void registerURI(char[] URI, IHTTPProtocolFactory fac);
+  void registerGenericHandler(IHTTPProtocolFactory fac);
 }
 
 interface IDeferred (T...) {
@@ -79,9 +80,13 @@ interface IHTTPRequest {
 }
 
 interface IHTTPProtocolFactory {
-   IProtocol buildProtocol(IHTTPRequest req);
+   IHTTPProtocol buildProtocol();
    void doStart();
    void doStop();
+}
+
+interface IHTTPProtocol {
+  void handleRequest(IHTTPRequest req);
 }
 
 interface ITransport {

@@ -11,8 +11,8 @@ import libevent.http;
 
 
 extern (C) void accept_cb(evhttp_request *req, void *user){
-  IHTTPProtocolFactory fac =  *cast(IHTTPProtocolFactory *)user;
-  reactor.callInFiber(&fac.buildProtocol, new EVHRequest(*req));
+  IHTTPProtocolFactory fac =  cast(IHTTPProtocolFactory)user;
+  reactor.callInFiber(delegate(){fac.buildProtocol().handleRequest(new EVHRequest(*req));});
 }
 
 class EVHServer : IHTTPServer {
@@ -20,7 +20,7 @@ class EVHServer : IHTTPServer {
 
   this(event_base evbase, InternetAddress bind) {
     ctx = evhttp_new(evbase);
-    if (!evhttp_bind_socket(ctx, bind.toAddrString.ptr, bind.port)) {
+    if (evhttp_bind_socket(ctx, toStringz(bind.toAddrString), bind.port)) {
       // return value is undocumented!
       assert(0);
     }
@@ -28,7 +28,12 @@ class EVHServer : IHTTPServer {
 
   void registerURI(char[] URI, IHTTPProtocolFactory fac) {
     fac.doStart();
-    evhttp_set_cb(ctx, URI.ptr, &accept_cb, &fac);
+    evhttp_set_cb(ctx, toStringz(URI), &accept_cb, cast(void *)fac);
+  }
+
+  void registerGenericHandler(IHTTPProtocolFactory fac) {
+    fac.doStart();
+    evhttp_set_gencb(ctx, &accept_cb, cast(void *)fac);
   }
   
 }
@@ -43,3 +48,4 @@ class EVHRequest : IHTTPRequest {
     return fromStringz(req.remote_host);
   }
 }
+

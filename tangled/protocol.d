@@ -9,6 +9,11 @@ import tangled.conduit;
 
 class BaseProtocol : IProtocol {
   ASocketConduit transport;
+  IProtocolFactory factory;
+
+  this (IProtocolFactory f){
+    factory = f;
+  }
 
   void makeConnection(ASocketConduit transport) {
     this.transport = transport;
@@ -25,9 +30,42 @@ class BaseProtocol : IProtocol {
   }*/
 }
 
+class BaseHTTPProtocol : IHTTPProtocol {
+  IHTTPRequest req;
+  IHTTPProtocolFactory factory;
+
+  this (IHTTPProtocolFactory f) {
+    factory = f;
+  }
+
+  void handleRequest(IHTTPRequest req) {
+    this.req = req;
+  }
+
+  /*
+  void dataReceived(char[] data) {
+  }
+  void connectionLost(Failure reason){
+  }
+  void connectionMade(){
+  }
+  void connectionFlushed(){
+  }*/
+}
+
 class SimpleFactory(Protocol) : IProtocolFactory {
-  Protocol buildProtocol() {
-    return new Protocol();
+  IProtocol buildProtocol() {
+    return new Protocol(this);
+  }
+  void doStart() {
+  }
+  void doStop() {
+  }
+}
+
+class SimpleHTTPFactory(Protocol) : IHTTPProtocolFactory {
+  IHTTPProtocol buildProtocol() {
+    return new Protocol(this);
   }
   void doStart() {
   }
