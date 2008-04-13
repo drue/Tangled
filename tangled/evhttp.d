@@ -7,12 +7,13 @@ import tangled.conduit;
 import tangled.interfaces;
 import tangled.reactor;
 
+import libevent.event;
 import libevent.http;
 
 
 extern (C) void accept_cb(evhttp_request *req, void *user){
   IHTTPProtocolFactory fac =  cast(IHTTPProtocolFactory)user;
-  reactor.callInFiber(delegate(){fac.buildProtocol().handleRequest(new EVHRequest(*req));});
+  reactor.callInFiber(delegate(){fac.buildProtocol().handleRequest(new EVHRequest(req));});
 }
 
 class EVHServer : IHTTPServer {
@@ -39,13 +40,20 @@ class EVHServer : IHTTPServer {
 }
 
 class EVHRequest : IHTTPRequest {
-  evhttp_request req;
-  this(evhttp_request nreq) {
+  evhttp_request *req;
+  evbuffer *buf;
+  this(evhttp_request *nreq) {
     req = nreq;
+    buf = evbuffer_new();
   }
 
   char[] remoteHost(){
     return fromStringz(req.remote_host);
+  }
+  
+  void sendReply(int code, char[] reason, char[]data) {
+    evbuffer_add(buf, data.ptr, data.length);
+    evhttp_send_reply(req, code, toStringz(reason), buf);
   }
 }
 

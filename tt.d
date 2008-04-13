@@ -9,6 +9,8 @@ import tangled.protocol;
 import tangled.reactor;
 import tangled.evhttp;
 
+import libevent.http;
+
 int main() {
   auto f =  new SimpleFactory!(Echo)();
   auto addr = new InternetAddress("127.0.0.1", 6060);
@@ -48,9 +50,6 @@ class HEcho : BaseHTTPProtocol {
   }
 
   void handleRequest(IHTTPRequest req) {
-    char[256] buf;
-    char[] input;
-    
     super.handleRequest(req);
     /*while(1) {
       auto c = transport.read(buf);
@@ -58,7 +57,7 @@ class HEcho : BaseHTTPProtocol {
 	break;
 	input.append(buf[0..c]);
 	}*/
-    log.trace("got http request!!");
+    req.sendReply(HTTP_OK, "OK", "Gotcha!\n");
   }
 
 }
