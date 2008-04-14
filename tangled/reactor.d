@@ -119,13 +119,19 @@ class Reactor : IReactorCore
 
   IListener tcpListen(InternetAddress bind, IProtocolFactory f) {
     log.trace(">>> tcpListen");
-    auto c = new AServerSocket(bind);
+    auto c = new AServerSocket!(ASocketConduit)(bind);
     c.socket.blocking(false);
-    auto t = new TCPListener(bind, c, f);
+    auto t = new TCPListener!(AServerSocket!(ASocketConduit), ASocketConduit)(bind, c, f);
     this.startListening(t);
     f.doStart();
     return t;
   }
+
+  /*
+  IListener tcpListenEVB(InternetAddress bind, IProtocolFactory f) {
+    auto c = new AServerSocket!(AEVBSocketConduit)(bind);
+  }
+  */
 
   void _accept(IListener s) {
     IAConduit c;
@@ -217,12 +223,12 @@ class Reactor : IReactorCore
   }
 }
 
-class TCPListener : IListener {
+class TCPListener(ServerSocket, SocketConduit) : IListener {
   IProtocolFactory f;
-  AServerSocket s;
+  ServerSocket s;
   InternetAddress addr;
 
-  this(InternetAddress addr, AServerSocket s, IProtocolFactory f) {
+  this(InternetAddress addr, ServerSocket s, IProtocolFactory f) {
     this.addr = addr;
     this.s = s;
     this.f = f;
@@ -240,8 +246,8 @@ class TCPListener : IListener {
     return f;
   }
   
-  ASocketConduit accept() {
-    auto a = cast(ASocketConduit)s.accept();
+  SocketConduit accept() {
+    auto a = cast(SocketConduit)s.accept();
     assert(a);
     log.trace(format(">>> accept: {}", a));
     auto p = f.buildProtocol();

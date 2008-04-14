@@ -7,16 +7,16 @@ import tango.net.Socket;
 import tangled.reactor;
 import tangled.conduit;
 
-class AServerSocket : ServerSocket {
+class AServerSocket (T) : ServerSocket {
   this(InternetAddress bind) {
     super(bind);
   }
 
-  protected ASocketConduit create (){
-    return new ASocketConduit();
+  protected T create (){
+    return new T();
   }
   
   char[] toString() {
-    return format("AServerSocket: {}", socket.fileHandle);
+    return format("AServerSocket / {} : {}", T.stringof, socket.fileHandle);
   }
 }
