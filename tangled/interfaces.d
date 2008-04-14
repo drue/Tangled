@@ -43,6 +43,7 @@ interface IDeferred (T...) {
   void callBack(T res);
   void callback(T res);
   Return yieldForResult();
+  uint numWaiters();
 }
 
 interface IReactorCore {

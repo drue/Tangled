@@ -17,14 +17,23 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
   IDeferred!() writeDF;
 
   uint read(void[] dst) {
-    if(readDF) {
-      throw new Exception("TangledSocketConduit already in read");
+    while(1) {
+      if(!readDF) {
+	readDF = new Deferred!();
+	reactor.registerRead(this);
+      }
+      auto x = readDF;
+      x.yieldForResult();
+      if (!readDF) {
+	// first to wake up
+	if (x.numWaiters > 1) {
+	  readDF = new Deferred!();
+	  reactor.registerRead(this);
+	}
+	break;
+      }
     }
-    else {
-      readDF = new Deferred!();
-      reactor.registerRead(this);
-      readDF.yieldForResult();
-    }
+
     log.trace(">>> attempting receive");
     auto c = _read(dst);
     if (c <= 0) {
@@ -41,21 +50,31 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
   void readyToRead() {
     log.trace(format(">>> readyToRead {}", readDF));
     if (readDF) {
-      readDF.callBack();
-      readDF = null;
+      auto x = readDF;
+      readDF = null; // callbacks depend in this being set to null
+      x.callBack();
     }
   }
 
   uint write(void[] src) {
     log.trace(">>> conduit write");
-    if(writeDF) {
-      throw new Exception("TangledSocketConduit already in write");
+    while(1) {
+      if(!writeDF) {
+	writeDF = new Deferred!();
+	reactor.registerWrite(this);
+      }
+      auto x = writeDF;
+      x.yieldForResult();
+      if (!writeDF) {
+	// first to wake up
+	if (x.numWaiters > 1) {
+	  writeDF = new Deferred!();
+	  reactor.registerWrite(this);
+	}
+	break;
+      }
     }
-    else {
-      writeDF = new Deferred!();
-      reactor.registerWrite(this);
-      writeDF.yieldForResult();
-    }
+
     log.trace(">>> attempting send");
     auto c = _write(src);
     if (c <= 0) {
@@ -71,8 +90,9 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
   void readyToWrite() {
     log.trace(format(">>> readyToWrite {}", writeDF));
     if (writeDF) {
-      writeDF.callBack();
+      auto x = writeDF;
       writeDF = null;
+      x.callBack();
     }
   }
 

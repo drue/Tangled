@@ -76,6 +76,10 @@ public class Deferred (T...) : IDeferred!(T)
       return;
   }
 
+  public uint numWaiters() {
+    return waiters.length;
+  }
+
   unittest
     {
       int result; 
