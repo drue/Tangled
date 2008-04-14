@@ -2,6 +2,8 @@ module tt;
 
 import tango.core.Thread;
 import tango.net.InternetAddress;
+import tango.io.Buffer;
+import tango.text.stream.LineIterator;
 
 import tangled.conduit;
 import tangled.interfaces;
@@ -34,13 +36,10 @@ class Echo : BaseProtocol {
   } body {
     super.makeConnection(t);
     log.trace(">>> makeConnection");
-    char[] buf = new char[256];
-    t.write("Welcome to the Echo Server\n");
-    while(1) {
-      auto c = transport.read(buf);
-      if (c == Eof)
-	break;
-      transport.write(buf[0..c]);
+    t.write("Welcome to the Echo Server!\r\n");
+    auto buf = new Buffer(transport);
+    foreach (line; new LineIterator!(char)(buf.input)) {
+      buf.append(line ~ "\r\n").flush;
     }
   }
 }
