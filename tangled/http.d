@@ -1,6 +1,7 @@
 module tangled.http;
 
 import tango.io.Console;
+import tango.io.Buffer;
 import tango.text.convert.Layout;
 import Integer = tango.text.convert.Integer;
 import tango.text.Ascii;
@@ -8,8 +9,8 @@ import tango.core.Exception;
 import tango.math.Math;
 import txt = tango.text.Util;
 
-import tangled.basic;
 import tangled.failure;
+import tangled.protocol;
 
 static Layout!(char) format;
 
@@ -17,11 +18,17 @@ static this() {
   format = new Layout!(char)();
 }
 
-class HTTPClient : LineReceiver {
+class HTTPClient : BaseProtocol {
   ulong contentLength;
   bool gotLength = false;
   bool firstLine = true;
   char[] resBuffer = null;
+  IBuffer buf;
+
+  void sendLine(char[] line) {
+    buf.append(line);
+    buf.append("\r\n").flush;
+  }
 
   void sendCommand(char[] command, char[] path) {
     sendLine(format("{0} {1} HTTP/1.0", command, path));
@@ -35,46 +42,51 @@ class HTTPClient : LineReceiver {
     sendLine("");
   }
   
-  void lineReceived(char[] line) {
-    if (firstLine) {
-      firstLine = false;
-      auto i = txt.locate(line, ' ');
-      if (i == line.length) {
-	transport.loseConnection();
+  void makeConnection(ASocketConduit t)  {
+    super.makeConnection(t);
+    buf = new Buffer(transport);
+    auto lines = new LineIterator!(char)(buf.input);
+    foreach(line; lines) {
+      if (firstLine) {
+	firstLine = false;
+	auto i = txt.locate(line, ' ');
+	if (i == line.length) {
+	  transport.shutdown();
+	  return;
+	}
+	auto vers = line[0..i];
+	auto status = line[++i..length];
+	i = txt.locate(status, ' ');
+	char[] message;
+	if (i != status.length) {
+	  message = status[i+1..length];
+	  status = status[0..i];
+	}
+	else {
+	  message = "";
+	}
+	handleStatus(vers, status, message);
 	return;
       }
-      auto vers = line[0..i];
-      auto status = line[++i..length];
-      i = txt.locate(status, ' ');
-      char[] message;
-      if (i != status.length) {
-	message = status[i+1..length];
-	status = status[0..i];
+      else if (line.length) {
+	auto n = txt.locate(line, ':');
+	if (n == line.length) {
+	  transport.shutdown();
+	  return;
+	}
+	char[] key = line[0..n];
+	char[] val = txt.trim(line[++n..length]);
+	handleHeader(key, val);
+	if (toLower(key.dup) == "content-length") {
+	  this.contentLength = Integer.parse(val);
+	  gotLength = true;
+	}
       }
       else {
-	message = "";
+	resBuffer = "";
+	handleEndHeaders();
+	setRawMode();
       }
-      handleStatus(vers, status, message);
-      return;
-    }
-    else if (line.length) {
-      auto n = txt.locate(line, ':');
-      if (n == line.length) {
-	transport.loseConnection();
-	return;
-      }
-      char[] key = line[0..n];
-      char[] val = txt.trim(line[++n..length]);
-      handleHeader(key, val);
-      if (toLower(key.dup) == "content-length") {
-	this.contentLength = Integer.parse(val);
-	gotLength = true;
-      }
-    }
-    else {
-      resBuffer = "";
-      handleEndHeaders();
-      setRawMode();
     }
   }
   
