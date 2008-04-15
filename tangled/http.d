@@ -11,6 +11,7 @@ import txt = tango.text.Util;
 
 import tangled.failure;
 import tangled.protocol;
+import tangled.conduit;
 
 static Layout!(char) format;
 
@@ -85,8 +86,15 @@ class HTTPClient : BaseProtocol {
       else {
 	resBuffer = "";
 	handleEndHeaders();
-	setRawMode();
+	break;
       }
+    }
+    int c;
+    char[4096] b;
+    while(c != Eof) {
+      c = buf.input.read(b);
+      if(c && c != Eof)
+	rawDataReceived(b[0..c]);
     }
   }
   
@@ -133,9 +141,9 @@ class HTTPClient : BaseProtocol {
 
     if (gotLength && contentLength == 0) {
       handleResponseEnd();
-      setLineMode(rest);
     }
   }
+
   unittest {
     class Foo : HTTPClient {
       char[] buf;
