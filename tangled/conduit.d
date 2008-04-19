@@ -8,32 +8,34 @@ import tangled.defer;
 import tangled.failure;
 import tangled.interfaces;
 import tangled.reactor;
+import tangled.queue;
 
 enum : uint {Eof = uint.max};
 
 class ASocketConduit : SocketConduit, IASelectable, IAConduit
 {
-  IDeferred!() readDF;
-  IDeferred!() writeDF;
+  Queue!(IDeferred!()) readQ;
+  Queue!(IDeferred!()) writeQ;
+
+  this() {
+    super();
+    readQ = new Queue!(IDeferred!());
+    writeQ = new Queue!(IDeferred!());
+  }
+  
+  protected this (SocketType type, ProtocolType protocol, bool create=true){
+    super(type, protocol, create);
+    readQ = new Queue!(IDeferred!());
+    writeQ = new Queue!(IDeferred!());
+  }
 
   uint read(void[] dst) {
-    while(1) {
-      if(!readDF) {
-	readDF = new Deferred!();
-	reactor.registerRead(this);
-      }
-      auto x = readDF;
-      x.yieldForResult();
-      if (!readDF) {
-	// first to wake up
-	if (x.numWaiters > 1) {
-	  readDF = new Deferred!();
-	  reactor.registerRead(this);
-	}
-	break;
-      }
-    }
-
+    auto readDF = new Deferred!();
+    if(readQ.empty)
+      reactor.registerRead(this);
+    readQ.append(readDF);
+    readDF.yieldForResult();
+    
     log.trace(">>> attempting receive");
     auto c = _read(dst);
     if (c <= 0) {
@@ -43,37 +45,28 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
     }
     else
       log.trace(">>> received");
-
     return c;
   }
 
   void readyToRead() {
-    log.trace(format(">>> readyToRead {}", readDF));
-    if (readDF) {
-      auto x = readDF;
-      readDF = null; // callbacks depend in this being set to null
-      x.callBack();
+    try {
+      auto df = readQ.take();
+      df.callBack();
     }
+    catch (EmptyQueueException e) {
+    }
+    if(!readQ.empty)
+      reactor.registerRead(this);
   }
 
   uint write(void[] src) {
     log.trace(">>> conduit write");
-    while(1) {
-      if(!writeDF) {
-	writeDF = new Deferred!();
+    auto writeDF = new Deferred!();
+    if(writeQ.empty) {
 	reactor.registerWrite(this);
-      }
-      auto x = writeDF;
-      x.yieldForResult();
-      if (!writeDF) {
-	// first to wake up
-	if (x.numWaiters > 1) {
-	  writeDF = new Deferred!();
-	  reactor.registerWrite(this);
-	}
-	break;
-      }
     }
+    writeQ.append(writeDF);
+    writeDF.yieldForResult();
 
     log.trace(">>> attempting send");
     auto c = _write(src);
@@ -88,12 +81,14 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
   }
 
   void readyToWrite() {
-    log.trace(format(">>> readyToWrite {}", writeDF));
-    if (writeDF) {
-      auto x = writeDF;
-      writeDF = null;
-      x.callBack();
+    try {
+      auto df = writeQ.take();
+      df.callBack();
     }
+    catch (EmptyQueueException e) {
+    }
+    if(!writeQ.empty)
+      reactor.registerWrite(this);
   }
 
   OutputStream flush() {
