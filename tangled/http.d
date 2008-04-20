@@ -1,13 +1,18 @@
 module tangled.http;
 
-import tango.io.Console;
-import tango.io.Buffer;
-import tango.text.convert.Layout;
-import Integer = tango.text.convert.Integer;
-import tango.text.Ascii;
 import tango.core.Exception;
+import tango.io.Buffer;
+import tango.io.Console;
 import tango.math.Math;
+import tango.net.SocketConduit;
+import tango.net.http.HttpClient;
+import tango.net.Uri;
+import tango.text.Ascii;
+import tango.text.convert.Layout;
+import tango.text.stream.LineIterator;
+
 import txt = tango.text.Util;
+import Integer = tango.text.convert.Integer;
 
 import tangled.failure;
 import tangled.protocol;
@@ -19,7 +24,8 @@ static this() {
   format = new Layout!(char)();
 }
 
-class HTTPClient : BaseProtocol {
+/*
+class OHTTPClient : BaseProtocol {
   ulong contentLength;
   bool gotLength = false;
   bool firstLine = true;
@@ -143,26 +149,45 @@ class HTTPClient : BaseProtocol {
       handleResponseEnd();
     }
   }
+}
 
-  unittest {
-    class Foo : HTTPClient {
-      char[] buf;
-      void handleResponse (char[] data) {
-	buf = data;
-      }
-    }
-    auto z = "HTTP/1.0 200 OK\r\n"
-      "Date: Wed, 28 Mar 2007 01:00:38 GMT\r\n"
-      "Content-length: 46\r\n"
-      "Content-type: text/plain\r\n"
-      "Pragma: no-cache\r\n"
-      "Server: hypertracker/0.4\r\n"
-      "\r\n"
-      "d8:intervali329e12:min intervali365e5:peers0:e";
-    
-    auto x = new Foo();
-    x.dataReceived(z);
-    assert(x.buf.length == 46);
+*/
+
+class AHttpClient : HttpClient {
+  this (RequestMethod method, Uri uri) {
+    super(method, uri);
+  }
+
+  this (RequestMethod method, char[] url) {
+    super(method, url);
+  }
+
+  protected SocketConduit createSocket() {
+    return new ASocketConduit();
   }
 }
 
+
+
+/*
+unittest {
+  class Foo : HTTPClient {
+    char[] buf;
+    void handleResponse (char[] data) {
+      buf = data;
+    }
+  }
+  auto z = "HTTP/1.0 200 OK\r\n"
+    "Date: Wed, 28 Mar 2007 01:00:38 GMT\r\n"
+    "Content-length: 46\r\n"
+    "Content-type: text/plain\r\n"
+    "Pragma: no-cache\r\n"
+    "Server: hypertracker/0.4\r\n"
+    "\r\n"
+    "d8:intervali329e12:min intervali365e5:peers0:e";
+    
+  auto x = new Foo();
+  x.dataReceived(z);
+  assert(x.buf.length == 46);
+}
+*/
