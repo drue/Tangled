@@ -35,7 +35,7 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
   uint read(void[] dst) {
     auto readDF = new Deferred!();
     if(readQ.empty)
-      reactor.registerRead(this);
+      registerRead(this);
     readQ.append(readDF);
     readDF.yieldForResult();
     
@@ -55,13 +55,13 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
     catch (EmptyQueueException e) {
     }
     if(!readQ.empty)
-      reactor.registerRead(this);
+      registerRead(this);
   }
 
   uint write(void[] src) {
     auto writeDF = new Deferred!();
     if(writeQ.empty) {
-	reactor.registerWrite(this);
+	registerWrite(this);
     }
     writeQ.append(writeDF);
     writeDF.yieldForResult();
@@ -82,7 +82,7 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
     catch (EmptyQueueException e) {
     }
     if(!writeQ.empty)
-      reactor.registerWrite(this);
+      registerWrite(this);
   }
 
   OutputStream flush() {

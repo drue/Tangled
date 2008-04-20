@@ -18,21 +18,6 @@ interface IConnector {
   InternetAddress getDestination();
 }
 
-interface IReactorTCP {
-  IListener tcpListen(InternetAddress bind, IProtocolFactory f);
-  void stopListeningTCP(ISelectable s);
-  void connectTCP(InternetAddress dest, IProtocol protocol, int timeout, InternetAddress bind);
-}
-
-interface IReactorHTTP {
-  IHTTPServer httpListen(InternetAddress bind);
-}
-
-interface IHTTPServer {
-  void registerURI(char[] URI, IHTTPProtocolFactory fac);
-  void registerGenericHandler(IHTTPProtocolFactory fac);
-}
-
 interface IDeferred (T...) {
   static if (typeof(T).length != 0)
     alias T[0] Return;
@@ -44,14 +29,6 @@ interface IDeferred (T...) {
   void callback(T res);
   Return yieldForResult();
   uint numWaiters();
-}
-
-interface IReactorCore {
-  IDeferred!(char[]) resolve(char[] name, int timeout);
-  void run();
-  void crash();
-  void iterate(double delay);
-  void fireSystemEvent(SystemEvent event);
 }
 
 interface IDelayedCall {

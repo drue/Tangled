@@ -15,8 +15,8 @@ mixin SimpleLogger!(name);
 
 int main(char[][] argv) {
   log.trace("Starting");
-  tangled.reactor.reactor.callLater(0.0, &_main, argv);
-  tangled.reactor.reactor.run();
+  tangled.reactor.callLater(0.0, &_main, argv);
+  tangled.reactor.run();
   return 0;
 }
 

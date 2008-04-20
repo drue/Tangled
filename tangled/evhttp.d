@@ -14,10 +14,10 @@ import libevent.http;
 
 extern (C) void accept_cb(evhttp_request *req, void *user){
   IHTTPProtocolFactory fac =  cast(IHTTPProtocolFactory)user;
-  reactor.callInFiber(delegate(){fac.buildProtocol().handleRequest(new EVHRequest(req));});
+  callInFiber(delegate(){fac.buildProtocol().handleRequest(new EVHRequest(req));});
 }
 
-class EVHServer : IHTTPServer {
+class EVHServer {
   evhttp ctx;
 
   this(event_base evbase, InternetAddress bind) {
