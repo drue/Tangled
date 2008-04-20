@@ -1,19 +1,43 @@
 module hc;
 
-import tangled.reactor;
+import tango.io.Stdout;
+import tango.net.InternetAddress;
+import tango.net.http.HttpClient;
+import tango.net.http.HttpHeaders;
+
+static import tangled.reactor;
 import tangled.http;
 import tangled.protocol;
+import tangled.log;
 
-int main() {
-  auto addr = new InternetAddress("127.0.0.1", 7070);
-  auto f = new SimpleHTTPClientFactory!(Client)(addr, "/booyah");
-  auto listener = reactor.tcpConnect(addr, f);
-  auto http = reactor.tcpConnect(addr);
-  
+auto name = "hc";
+mixin SimpleLogger!(name);
+
+int main(char[][] argv) {
+  log.trace("Starting");
+  tangled.reactor.reactor.callLater(0.0, &_main, argv);
+  tangled.reactor.reactor.run();
+  return 0;
 }
 
-class Client : HTTPClient {
-  void handleResponseEnd() {
-    log.trace(format(">>> Got response: {}", resBuffer));
+void _main(char[][]argv) {
+  log.trace("callback");
+  Stdout("callback2");
+  if (argv.length > 1) {
+    auto client = new AHttpClient (HttpClient.Get, argv[1]);
+    client.open();
+    scope(exit) { client.close (); }
+	
+    void sink (void[] content) {
+      Stdout(cast(char[])content).flush;
+    }
+	
+    if (client.isResponseOK) {
+      auto length = client.getResponseHeaders.getInt (HttpHeader.ContentLength, uint.max);
+      Stdout(client.getResponseHeaders).newline.flush;
+      client.read (&sink, length);
+    }
+    else
+      Stderr(client.getResponse).newline;
   }
 }
