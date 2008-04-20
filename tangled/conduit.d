@@ -3,14 +3,17 @@ module tangled.conduit;
 import tango.net.SocketConduit;
 import tango.net.ServerSocket;
 import tango.net.Socket;
+import tango.text.convert.Layout;
 
-import tangled.defer;
+import tangled.defer : Deferred;
 import tangled.failure;
 import tangled.interfaces;
 import tangled.reactor;
 import tangled.queue;
 
 enum : uint {Eof = uint.max};
+
+private Layout!(char) format;
 
 class ASocketConduit : SocketConduit, IASelectable, IAConduit
 {
@@ -36,15 +39,11 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
     readQ.append(readDF);
     readDF.yieldForResult();
     
-    log.trace(">>> attempting receive");
     auto c = _read(dst);
     if (c <= 0) {
-      log.trace(">>> disconnected");
       // handle disconnect
       return Eof;
     }
-    else
-      log.trace(">>> received");
     return c;
   }
 
@@ -60,7 +59,6 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
   }
 
   uint write(void[] src) {
-    log.trace(">>> conduit write");
     auto writeDF = new Deferred!();
     if(writeQ.empty) {
 	reactor.registerWrite(this);
@@ -68,15 +66,11 @@ class ASocketConduit : SocketConduit, IASelectable, IAConduit
     writeQ.append(writeDF);
     writeDF.yieldForResult();
 
-    log.trace(">>> attempting send");
     auto c = _write(src);
     if (c <= 0) {
-      log.trace(">>> disconnected");
       // handle disconnect
       return Eof;
     }
-    else
-      log.trace(">>> sent");
     return c;
   }
 

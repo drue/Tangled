@@ -1,12 +1,13 @@
 module tangled.basic;
 
 import tango.io.Console;
-import tangled.protocol;
-import txt = tango.text.Util;
+import tango.io.Stdout;
 import tango.text.convert.Layout;
 
-import tango.io.Stdout;
+import txt = tango.text.Util;
 
+import tangled.interfaces;
+import tangled.protocol;
 
 static Layout!(char) format;
 
@@ -19,7 +20,11 @@ class LineReceiver : BaseProtocol {
   char[] __buffer = "";
   const char[] delimiter = "\r\n";
   const uint MAX_LENGTH = 16384;
-  
+
+  this (IProtocolFactory f) {
+    super(f);
+  }
+
   void clearLineBuffer() {
     __buffer = "";
   }
@@ -65,7 +70,7 @@ class LineReceiver : BaseProtocol {
   }
 
   void lineLengthExceeded(char[] line) {
-    return transport.loseConnection();
+    return transport.shutdown();
   }
 
   void lineReceived(char[] line) {

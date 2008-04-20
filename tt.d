@@ -5,13 +5,17 @@ import tango.net.InternetAddress;
 import tango.io.Buffer;
 import tango.text.stream.LineIterator;
 
-import tangled.conduit;
+import tangled.conduit : ASocketConduit;
 import tangled.interfaces;
 import tangled.protocol;
-import tangled.reactor;
+import tangled.reactor : reactor;
 import tangled.evhttp;
+import tangled.log;
 
 import libevent.http;
+
+auto name = "tt";
+mixin SimpleLogger!(name);
 
 int main() {
   auto f =  new SimpleFactory!(Echo)();
@@ -20,7 +24,8 @@ int main() {
   auto http = reactor.httpListen(new InternetAddress("127.0.0.1", 7070));
   auto fh = new SimpleHTTPFactory!(HEcho)();
   http.registerGenericHandler(fh);
-  reactor.callLater(2.0, delegate(){log.error("CallLater Works.");});
+  void fun(){.log.trace("CallLater Works.");}
+  reactor.callLater(1.0, &fun);
   reactor.run();
   return 0;
 }

@@ -7,7 +7,6 @@ import tango.math.Math;
 import tango.net.InternetAddress;
 import tango.stdc.stringz;
 import tango.text.convert.Layout;
-import tango.text.convert.Layout;
 import tango.util.collection.ArrayBag;
 import tango.util.log.ConsoleAppender;
 import tango.util.log.DateLayout;
@@ -31,8 +30,9 @@ version(build) {
 }
 
 Reactor reactor;
-Logger log, evlog;
-static Layout!(char) format;
+
+private Logger log, evlog;
+private Layout!(char) format;
 
 static this(){
   log = Log.getLogger("tangled.reactor");
@@ -71,7 +71,6 @@ extern (C) {
   }
 
   void event_cb(int fd, short reason, void *usr) {
-    log.trace(">>> event_cb");
     auto s = cast(IDelayedCall)usr;
     reactor.callInFiber(&s.call);
   }
@@ -147,10 +146,12 @@ class Reactor : IReactorCore
     }
   }
 
-  void callInFiber(Callable, Args...)(Callable f, Args args) {
+  protected void callInFiber(Callable, Args...)(Callable f, Args args) {
     try {
-      auto fiber = new Fiber(delegate void() {f(args);});
+      auto fiber = new Fiber(delegate void() {log.trace(format("inner fiber {} {}", f, args));f(args);log.trace("inner fiber exit");});
+      log.trace(">>> callInFiber calling");
       fiber.call();
+      log.trace(">>> callInFiber called");
     }
     catch (FiberException e) {
       log.error(format("Fiber Exception {}", e));

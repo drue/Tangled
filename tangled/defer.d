@@ -1,10 +1,15 @@
 module tangled.defer;
 
 import tango.core.Thread;
-import tango.util.collection.LinkSeq;
 import tango.core.Traits;
-
+import tango.util.collection.LinkSeq;
+ 
 import tangled.interfaces;
+import tangled.log;
+
+auto name = "tangled.defer";
+
+mixin SimpleLogger!(name);
 
 public class Deferred (T...) : IDeferred!(T)
 {
@@ -150,13 +155,16 @@ class DelayedCall(Return, Callable, U...) : IDelayedCall {
   }
 
   void call() {
+    log.trace("delayedcall call");
     called = true;
+    Return x;
     static if(Return.stringof != (void*).stringof) {
-      Return x = this.f(this.args);
+      log.trace(format("return {}", args));
+      x = this.f(this.args);
     }
     else {
-      this.f();
-      void *x;
+      log.trace("void return");
+      this.f(this.args);
     }
     df.callback(x);
   }

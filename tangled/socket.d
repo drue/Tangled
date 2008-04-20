@@ -1,11 +1,10 @@
 module tangled.socket;
 
 import tango.net.ServerSocket;
-import tango.net.SocketConduit;
 import tango.net.Socket;
+import tango.text.convert.Layout;
 
-import tangled.reactor;
-import tangled.conduit;
+private Layout!(char) format;
 
 class AServerSocket (T) : ServerSocket {
   this(InternetAddress bind) {
