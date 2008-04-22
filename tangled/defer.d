@@ -159,11 +159,9 @@ class DelayedCall(Return, Callable, U...) : IDelayedCall {
     called = true;
     Return x;
     static if(Return.stringof != (void*).stringof) {
-      log.trace(format("return {}", args));
       x = this.f(this.args);
     }
     else {
-      log.trace("void return");
       this.f(this.args);
     }
     df.callback(x);

@@ -1,15 +1,13 @@
 module tangled.interfaces;
 
-import libevent.http;
-
 import tango.net.InternetAddress;
 import tango.io.selector.model.ISelector;
 import tangled.failure;
 import tangled.time;
 import tangled.conduit;
 
-enum SystemEvent { startup, shutdown, persist };
-enum Phase {before, during, after };
+//enum SystemEvent { startup, shutdown, persist };
+//enum Phase {before, during, after };
 
 interface IConnector {
   void stopConnecting();

@@ -8,7 +8,7 @@ import tango.text.stream.LineIterator;
 import tangled.conduit : ASocketConduit;
 import tangled.interfaces;
 import tangled.protocol;
-import tangled.reactor : reactor;
+static import tangled.reactor;
 import tangled.evhttp;
 import tangled.log;
 
@@ -20,13 +20,13 @@ mixin SimpleLogger!(name);
 int main() {
   auto f =  new SimpleFactory!(Echo)();
   auto addr = new InternetAddress("127.0.0.1", 6060);
-  auto listener = reactor.tcpListen(addr, f);
-  auto http = reactor.httpListen(new InternetAddress("127.0.0.1", 7070));
+  auto listener = tangled.reactor.tcpListen(addr, f);
+  auto http = tangled.reactor.httpListen(new InternetAddress("127.0.0.1", 7070));
   auto fh = new SimpleHTTPFactory!(HEcho)();
   http.registerGenericHandler(fh);
   void fun(){.log.trace("CallLater Works.");}
-  reactor.callLater(1.0, &fun);
-  reactor.run();
+  tangled.reactor.callLater(1.0, &fun);
+  tangled.reactor.run();
   return 0;
 }
 

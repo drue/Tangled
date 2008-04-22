@@ -82,11 +82,12 @@ extern (C) {
 
 }
 
+/*
 IDeferred!(char[]) resolve(char[] name, int timeout) {
   assert(0);
   return new Deferred!(char[]);
 }
-
+*/
 void run() {
   log.info("Entering main event loop.");
   event_base_dispatch(evbase);
@@ -100,9 +101,11 @@ void iterate(double delay) {
   assert(0);
 }
 
+/*
 void fireSystemEvent(SystemEvent event) {
   assert(0);
-}
+  }
+*/
 
 EVHServer httpListen(InternetAddress bind) {
   return new EVHServer(evbase, bind);
@@ -140,7 +143,8 @@ void _accept(IListener s) {
 
 protected void callInFiber(Callable, Args...)(Callable f, Args args) {
   try {
-    auto fiber = new Fiber(delegate void() {log.trace(format("inner fiber {} {}", f, args));f(args);log.trace("inner fiber exit");});
+    auto z = delegate() {log.trace(format("inner fiber {} {}", f, args));f(args);log.trace("inner fiber exit");};
+    auto fiber = new Fiber(z);
     log.trace(">>> callInFiber calling");
     fiber.call();
     log.trace(">>> callInFiber called");
